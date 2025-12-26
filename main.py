@@ -703,41 +703,85 @@ class PlayScene(Scene):
             screen.blit(t, (x, y))
 
     def draw(self, screen: pygame.Surface) -> None:
+        VIEW_W = WIDTH // 2
+        VIEW_H = HEIGHT
+
+        def clamp(v, a, b):
+            return max(a, min(b, v))
+
+        def camera_offset(center: pygame.Vector2) -> pygame.Vector2:
+            off_x = center.x - VIEW_W / 2
+            off_y = center.y - VIEW_H / 2
+            off_x = clamp(off_x, 0, WIDTH - VIEW_W)
+            off_y = clamp(off_y, 0, HEIGHT - VIEW_H)
+            return pygame.Vector2(off_x, off_y)
+
+        def draw_world(view_surf: pygame.Surface, cam_off: pygame.Vector2) -> None:
+            view_surf.fill(BG_COLOR)
+
+            def shift_rect(r: pygame.Rect) -> pygame.Rect:
+                return r.move(-int(cam_off.x), -int(cam_off.y))
+
+            def shift_pos(p: pygame.Vector2):
+                return (int(p.x - cam_off.x), int(p.y - cam_off.y))
+
+            # arena border
+            arena_rect = pygame.Rect(
+                ARENA_MARGIN, ARENA_MARGIN,
+                WIDTH - 2 * ARENA_MARGIN, HEIGHT - 2 * ARENA_MARGIN
+            )
+            pygame.draw.rect(
+                view_surf,
+                (70, 70, 85),
+                shift_rect(arena_rect),
+                width=2,
+                border_radius=14,
+            )
+
+            # obstacles
+            for o in self.map.obstacles:
+                pygame.draw.rect(view_surf, OBSTACLE_COLOR, shift_rect(o), border_radius=10)
+
+            # grenades
+            for g in self.grenades:
+                pygame.draw.circle(view_surf, (220, 220, 120), shift_pos(g.pos), 7)
+                frac = max(0.0, min(1.0, g.fuse / GRENADE_FUSE_SEC))
+                pygame.draw.circle(view_surf, (180, 180, 110), shift_pos(g.pos), int(16 * frac), 1)
+
+            # bullets
+            for b in self.bullets:
+                col = (180, 220, 255) if b.owner_id == 1 else (255, 200, 200)
+                pygame.draw.rect(view_surf, col, shift_rect(b.rect), border_radius=4)
+
+            # players（直接畫 shifted）
+            for pl in (self.p1, self.p2):
+                pygame.draw.rect(view_surf, pl.color, shift_rect(pl.rect), border_radius=10)
+                tip_world = pygame.Vector2(pl.pos.x + pl.facing.x * 18, pl.pos.y + pl.facing.y * 18)
+                pygame.draw.circle(view_surf, (245, 245, 245), shift_pos(tip_world), 4)
+
+        left_view = pygame.Surface((VIEW_W, VIEW_H))
+        right_view = pygame.Surface((VIEW_W, VIEW_H))
+
+        cam1 = camera_offset(self.p1.pos)
+        cam2 = camera_offset(self.p2.pos)
+
+        draw_world(left_view, cam1)
+        draw_world(right_view, cam2)
+
+        # 把左右畫面貼到主螢幕
         screen.fill(BG_COLOR)
+        screen.blit(left_view, (0, 0))
+        screen.blit(right_view, (VIEW_W, 0))
 
-        # arena border
-        pygame.draw.rect(
-            screen,
-            (70, 70, 85),
-            (ARENA_MARGIN, ARENA_MARGIN, WIDTH - 2 * ARENA_MARGIN, HEIGHT - 2 * ARENA_MARGIN),
-            width=2,
-            border_radius=14,
-        )
+        # 中間分隔線
+        pygame.draw.line(screen, (90, 90, 105), (VIEW_W, 0), (VIEW_W, HEIGHT), 2)
 
-        self.map.draw(screen)
+        # UI（沿用你原本的）
+        self._draw_hp_bar(screen, 20, 26, 240, 18, self.p1.hp, P1_COLOR, "P1(藍)")
+        self._draw_hp_bar(screen, VIEW_W + 20, 26, 240, 18, self.p2.hp, P2_COLOR, "P2(紅)")
 
-        # grenades
-        for g in self.grenades:
-            pygame.draw.circle(screen, (220, 220, 120), (int(g.pos.x), int(g.pos.y)), 7)
-            # fuse ring（視覺化倒數）
-            frac = max(0.0, min(1.0, g.fuse / GRENADE_FUSE_SEC))
-            pygame.draw.circle(screen, (180, 180, 110), (int(g.pos.x), int(g.pos.y)), int(16 * frac), 1)
-
-        # bullets
-        for b in self.bullets:
-            col = (180, 220, 255) if b.owner_id == 1 else (255, 200, 200)
-            pygame.draw.rect(screen, col, b.rect, border_radius=4)
-
-        # players
-        self.p1.draw(screen)
-        self.p2.draw(screen)
-
-        # UI
-        self._draw_hp_bar(screen, 60, 26, 320, 18, self.p1.hp, P1_COLOR, "P1(藍)")
-        self._draw_hp_bar(screen, WIDTH - 60 - 320, 26, 320, 18, self.p2.hp, P2_COLOR, "P2(紅)")
-
-        self._draw_weapon_ui(screen, 60, 60, self.p1, align_right=False)
-        self._draw_weapon_ui(screen, WIDTH - 60, 60, self.p2, align_right=True)
+        self._draw_weapon_ui(screen, 20, 60, self.p1, align_right=False)
+        self._draw_weapon_ui(screen, WIDTH - 20, 60, self.p2, align_right=True)
 
         hint = self.font.render("ESC: Menu | (Win) Enter: Restart", True, (170, 170, 190))
         screen.blit(hint, (WIDTH // 2 - hint.get_width() // 2, HEIGHT - 32))
