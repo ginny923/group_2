@@ -870,7 +870,6 @@ class Game:
         self.sound.load("hit", "hit.wav")
         self.sound.load("grenade", "grenade.wav")
         self.sound.load("boom", "boom.wav")
-
         self.scene: Scene = MenuScene(self)
 
     def set_scene(self, scene: Scene) -> None:
