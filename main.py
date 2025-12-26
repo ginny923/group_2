@@ -772,6 +772,39 @@ class PlayScene(Scene):
                 pygame.draw.line(view_surf, col, left_hand, back_hand_end, 5)
                 pygame.draw.line(view_surf, col, right_hand, front_hand_end, 5)
 
+                # ===== 槍：畫在前手末端（跟著 facing）=====
+                gun_color = (30, 30, 35)
+                gun_outline = (220, 220, 235)
+
+                # 槍的起點：前手末端附近
+                gx, gy = front_hand_end
+
+                wpn = pl.weapon.name
+
+                if wpn == "Pistol":
+                    # 小短槍：小矩形
+                    gun_rect = pygame.Rect(gx, gy - 3, fx * 14, 6)   # fx 決定左右
+                    pygame.draw.rect(view_surf, gun_color, gun_rect)
+                    pygame.draw.rect(view_surf, gun_outline, gun_rect, 1)
+
+                elif wpn == "Rifle":
+                    # 長槍：長矩形 + 槍托
+                    barrel = pygame.Rect(gx, gy - 3, fx * 26, 6)
+                    stock  = pygame.Rect(gx - fx * 6, gy - 2, fx * 8, 8)
+                    pygame.draw.rect(view_surf, gun_color, barrel)
+                    pygame.draw.rect(view_surf, gun_color, stock)
+                    pygame.draw.rect(view_surf, gun_outline, barrel, 1)
+                    pygame.draw.rect(view_surf, gun_outline, stock, 1)
+
+                elif wpn == "Shotgun":
+                    # 霰彈槍：中長 + 前端加粗
+                    barrel = pygame.Rect(gx, gy - 3, fx * 22, 6)
+                    muzzle = pygame.Rect(gx + fx * 18, gy - 4, fx * 6, 8)
+                    pygame.draw.rect(view_surf, gun_color, barrel)
+                    pygame.draw.rect(view_surf, gun_color, muzzle)
+                    pygame.draw.rect(view_surf, gun_outline, barrel, 1)
+                    pygame.draw.rect(view_surf, gun_outline, muzzle, 1)
+
                 # 腳
                 hip_y = cy + body_h//2 - 2
                 left_leg_start = (cx - 6, hip_y)
