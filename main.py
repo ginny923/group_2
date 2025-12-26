@@ -797,6 +797,7 @@ class Game:
     def __init__(self) -> None:
         pygame.init()
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
+        self.render_surface = pygame.Surface((WIDTH, HEIGHT))
         pygame.display.set_caption("Two Player Shooter (OOP)")
         self.clock = pygame.time.Clock()
         self.running = True
@@ -828,8 +829,31 @@ class Game:
                     self.scene.handle_event(event)
 
             self.scene.update(dt)
-            self.scene.draw(self.screen)
+
+            # 先畫到固定 1000x600 畫布
+            self.scene.draw(self.render_surface)
+
+            # 取得全螢幕大小
+            sw, sh = self.screen.get_size()
+
+            # 等比例縮放（不變形）
+            scale = min(sw / WIDTH, sh / HEIGHT)
+            scaled_w = int(WIDTH * scale)
+            scaled_h = int(HEIGHT * scale)
+
+            # 置中偏移（letterbox）
+            ox = (sw - scaled_w) // 2
+            oy = (sh - scaled_h) // 2
+
+            # 畫背景（黑邊）
+            self.screen.fill((0, 0, 0))
+
+            # 縮放後貼到中央
+            scaled = pygame.transform.smoothscale(self.render_surface, (scaled_w, scaled_h))
+            self.screen.blit(scaled, (ox, oy))
+
             pygame.display.flip()
+
 
         pygame.quit()
 
