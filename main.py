@@ -391,6 +391,13 @@ class Player:
     def alive(self) -> bool:
         return self.hp > 0
 
+    def body_hitbox(self) -> pygame.Rect:
+        # 身體 hitbox：比整個 PLAYER_SIZE 小，讓手腳可穿牆
+        w = int(self.rect.w * 0.45)   # 身體寬
+        h = int(self.rect.h * 0.55)   # 身體高
+        cx, cy = self.rect.center
+        return pygame.Rect(cx - w // 2, cy - h // 2, w, h)
+
     def set_weapon(self, idx: int) -> None:
         if 0 <= idx < len(self.weapons):
             self.weapon_index = idx
@@ -402,11 +409,12 @@ class Player:
         # 分軸移動：比較滑順，也比較好卡牆
         if dx != 0:
             self.rect.x += int(dx)
-            if rects_overlap_any(self.rect, obstacles):
+            if rects_overlap_any(self.body_hitbox(), obstacles):
                 self.rect.x -= int(dx)
+
         if dy != 0:
             self.rect.y += int(dy)
-            if rects_overlap_any(self.rect, obstacles):
+            if rects_overlap_any(self.body_hitbox(), obstacles):
                 self.rect.y -= int(dy)
 
         clamp_in_arena(self.rect)
@@ -644,12 +652,12 @@ class PlayScene(Scene):
                 continue
 
             # player hit (no friendly-fire)
-            if b.owner_id == 1 and b.rect.colliderect(self.p2.rect):
+            if b.owner_id == 1 and b.rect.colliderect(self.p2.body_hitbox()):
                 self.p2.take_damage(b.damage)
                 self.bullets.remove(b)
                 self.game.sound.play("hit", volume=0.25)
                 continue
-            if b.owner_id == 2 and b.rect.colliderect(self.p1.rect):
+            if b.owner_id == 2 and b.rect.colliderect(self.p1.body_hitbox()):
                 self.p1.take_damage(b.damage)
                 self.bullets.remove(b)
                 self.game.sound.play("hit", volume=0.25)
@@ -725,6 +733,57 @@ class PlayScene(Scene):
             def shift_pos(p: pygame.Vector2):
                 return (int(p.x - cam_off.x), int(p.y - cam_off.y))
 
+            def draw_human(pl: Player):
+                # 人的中心（世界座標 -> 視窗座標）
+                cx, cy = shift_pos(pl.pos)
+
+                # 尺寸可以依你的 PLAYER_SIZE 調整
+                body_h = 26
+                body_w = 18
+                head_r = 9
+                leg_len = 14
+                arm_len = 12
+
+                # 讓整個人隨 facing 左右鏡像
+                fx = 1 if pl.facing.x >= 0 else -1
+
+                # 顏色（用玩家顏色）
+                col = pl.color
+                outline = (20, 20, 25)
+
+                # 頭
+                pygame.draw.circle(view_surf, col, (cx, cy - body_h//2 - head_r + 2), head_r)
+                pygame.draw.circle(view_surf, outline, (cx, cy - body_h//2 - head_r + 2), head_r, 2)
+
+                # 身體（圓角矩形）
+                body_rect = pygame.Rect(cx - body_w//2, cy - body_h//2, body_w, body_h)
+                pygame.draw.rect(view_surf, col, body_rect, border_radius=8)
+                pygame.draw.rect(view_surf, outline, body_rect, width=2, border_radius=8)
+
+                # 手（左右）
+                shoulder_y = cy - body_h//2 + 8
+                left_hand = (cx - body_w//2, shoulder_y)
+                right_hand = (cx + body_w//2, shoulder_y)
+
+                # 前手（朝 facing 方向那隻）
+                front_hand_end = (cx + fx * (body_w//2 + arm_len), shoulder_y + 2)
+                back_hand_end  = (cx - fx * (body_w//2 + arm_len - 4), shoulder_y + 6)
+
+                pygame.draw.line(view_surf, col, left_hand, back_hand_end, 5)
+                pygame.draw.line(view_surf, col, right_hand, front_hand_end, 5)
+
+                # 腳
+                hip_y = cy + body_h//2 - 2
+                left_leg_start = (cx - 6, hip_y)
+                right_leg_start = (cx + 6, hip_y)
+
+                pygame.draw.line(view_surf, col, left_leg_start, (cx - 8, hip_y + leg_len), 6)
+                pygame.draw.line(view_surf, col, right_leg_start, (cx + 8, hip_y + leg_len), 6)
+
+                # 眼睛/方向點（用 facing）
+                eye = (cx + fx * 6, cy - body_h//2 - head_r + 2)
+                pygame.draw.circle(view_surf, (245, 245, 245), eye, 3)
+
             # arena border
             arena_rect = pygame.Rect(
                 ARENA_MARGIN, ARENA_MARGIN,
@@ -755,9 +814,8 @@ class PlayScene(Scene):
 
             # players（直接畫 shifted）
             for pl in (self.p1, self.p2):
-                pygame.draw.rect(view_surf, pl.color, shift_rect(pl.rect), border_radius=10)
-                tip_world = pygame.Vector2(pl.pos.x + pl.facing.x * 18, pl.pos.y + pl.facing.y * 18)
-                pygame.draw.circle(view_surf, (245, 245, 245), shift_pos(tip_world), 4)
+                # players（成人形狀）
+                draw_human(pl)
 
         left_view = pygame.Surface((VIEW_W, VIEW_H))
         right_view = pygame.Surface((VIEW_W, VIEW_H))
