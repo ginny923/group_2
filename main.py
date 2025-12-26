@@ -796,7 +796,7 @@ class PlayScene(Scene):
 class Game:
     def __init__(self) -> None:
         pygame.init()
-        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
         pygame.display.set_caption("Two Player Shooter (OOP)")
         self.clock = pygame.time.Clock()
         self.running = True
