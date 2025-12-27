@@ -35,6 +35,23 @@ GRENADE_BOUNCE = 0.55
 # 隨機掩體數量
 OBSTACLE_COUNT = 9
 
+@dataclass(frozen=True)
+class GameMode:
+    key: str
+    title: str
+    max_hp: int
+    obstacle_count: int
+    grenade_radius: int
+    infinite_ammo: bool
+    grenade_cd: float  # 手榴彈冷卻秒數
+
+MODES = {
+    "classic": GameMode("classic", "Classic",  max_hp=100, obstacle_count=9,  grenade_radius=80,  infinite_ammo=False, grenade_cd=1.0),
+    "hardcore": GameMode("hardcore", "Hardcore", max_hp=60, obstacle_count=12, grenade_radius=95,  infinite_ammo=False, grenade_cd=1.4),
+    "chaos": GameMode("chaos", "Chaos",    max_hp=120, obstacle_count=16, grenade_radius=110, infinite_ammo=True,  grenade_cd=0.6),
+}
+
+
 # =========================
 # Utility
 # =========================
@@ -945,6 +962,7 @@ class Game:
         self.sound.load("hit", "hit.wav")
         self.sound.load("grenade", "grenade.wav")
         self.sound.load("boom", "boom.wav")
+        self.mode = MODES["classic"]
         self.scene: Scene = MenuScene(self)
 
     def set_scene(self, scene: Scene) -> None:
