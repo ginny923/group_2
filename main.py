@@ -639,18 +639,23 @@ class ModeSelectScene(Scene):
             "chaos":    "More HP, many obstacles, faster grenades, infinite ammo!",
         }
 
+        desc_font = pygame.font.SysFont("Arial", 18)
+
+        start_y = 190
+        block_h = 90   # 每個模式佔 90px，高度夠就不會擠在一起
+
         for i, key in enumerate(self.mode_keys):
             m = MODES[key]
             prefix = "▶ " if i == self.selection else "  "
-            line = f"{prefix}{m.title}"
-            t = self.font.render(line, True, UI_COLOR)
-            screen.blit(t, (WIDTH // 2 - 140, 200 + i * 40))
 
-            d = self.font.render(desc_map[key], True, (170, 170, 190))
-            screen.blit(d, (WIDTH // 2 - 140, 225 + i * 40))
+            line_surf = self.font.render(prefix + m.title, True, UI_COLOR)
+            line_x = WIDTH // 2 - line_surf.get_width() // 2
+            line_y = start_y + i * block_h
+            screen.blit(line_surf, (line_x, line_y))
 
-        hint = self.font.render("↑↓ Select | Enter Confirm | Esc Back", True, (170, 170, 190))
-        screen.blit(hint, (WIDTH // 2 - hint.get_width() // 2, HEIGHT - 90))
+            desc_surf = desc_font.render(desc_map[key], True, (170, 170, 190))
+            desc_x = WIDTH // 2 - desc_surf.get_width() // 2
+            screen.blit(desc_surf, (desc_x, line_y + 28))
 
 # =========================
 # Play Scene (main game)
