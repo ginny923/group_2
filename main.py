@@ -828,9 +828,23 @@ class PlayScene(Scene):
                 self.game.sound.play("hit", volume=0.25)
                 continue
 
-        # grenades
+        # grenades (作法B：碰到人就立刻爆)
         for g in self.grenades[:]:
             g.update(dt, self.map.obstacles)
+
+            # 手榴彈本體 hitbox（跟你 Grenade.update 用的一樣大小）
+            grenade_rect = pygame.Rect(int(g.pos.x - 7), int(g.pos.y - 7), 14, 14)
+
+            # ✅ 撞到敵人就爆（避免炸到自己：owner_id 判斷）
+            hit_p1 = (g.owner_id != 1 and grenade_rect.colliderect(self.p1.body_hitbox()))
+            hit_p2 = (g.owner_id != 2 and grenade_rect.colliderect(self.p2.body_hitbox()))
+
+            if hit_p1 or hit_p2:
+                self._explode(g)
+                self.grenades.remove(g)
+                continue
+
+            # fuse 到了也爆
             if g.fuse <= 0:
                 self._explode(g)
                 self.grenades.remove(g)
