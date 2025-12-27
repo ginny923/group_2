@@ -321,20 +321,20 @@ class Weapon:
 
             # 子彈rect以中心建
             bw, bh = self.bullet_size
-        bx = int(origin.x) - bw // 2
-        by = int(origin.y) - bh // 2
-        rect = pygame.Rect(bx, by, bw, bh)
+            bx = int(origin.x) - bw // 2
+            by = int(origin.y) - bh // 2
+            rect = pygame.Rect(bx, by, bw, bh)
 
-        bullets.append(
-            Bullet(
-                rect=rect,
-                vel=v,
-                owner_id=owner_id,
-                damage=self.damage,
-                kind=self.bullet_kind,
-                thickness=self.bullet_thickness,
+            bullets.append(
+                Bullet(
+                    rect=rect,
+                    vel=v,
+                    owner_id=owner_id,
+                    damage=self.damage,
+                    kind=self.bullet_kind,
+                    thickness=self.bullet_thickness,
+                )
             )
-        )
 
         return bullets
 
@@ -772,11 +772,14 @@ class PlayScene(Scene):
                 head_r = 9
                 leg_len = 14
                 arm_len = 12
+
                 # 讓整個人隨 facing 左右鏡像
                 fx = 1 if pl.facing.x >= 0 else -1
+
                 # 顏色（用玩家顏色）
                 col = pl.color
                 outline = (20, 20, 25)
+
                 # 頭
                 pygame.draw.circle(view_surf, col, (cx, cy - body_h//2 - head_r + 2), head_r)
                 pygame.draw.circle(view_surf, outline, (cx, cy - body_h//2 - head_r + 2), head_r, 2)
