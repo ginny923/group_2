@@ -553,7 +553,7 @@ class MenuScene(Scene):
             elif event.key == pygame.K_RETURN:
                 item = self.items[self.selection]
                 if item == "Start":
-                    self.game.set_scene(PlayScene(self.game))
+                    self.game.set_scene(ModeSelectScene(self.game))
                 elif item == "Controls":
                     self.game.set_scene(ControlsScene(self.game))
                 elif item == "Quit":
@@ -598,6 +598,58 @@ class ControlsScene(Scene):
             screen.blit(t, (80, 200 + i * 40))
 
         hint = self.font.render("Press Enter/Esc to go back", True, (170, 170, 190))
+        screen.blit(hint, (WIDTH // 2 - hint.get_width() // 2, HEIGHT - 90))
+
+class ModeSelectScene(Scene):
+    def __init__(self, game: "Game") -> None:
+        self.game = game
+        self.font = pygame.font.SysFont("Arial", 22)
+        self.big = pygame.font.SysFont("Arial", 46, bold=True)
+
+        # 顯示順序
+        self.mode_keys = ["classic", "hardcore", "chaos"]
+        self.selection = 0
+
+    def handle_event(self, event: pygame.event.Event) -> None:
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                self.game.set_scene(MenuScene(self.game))
+                return
+
+            if event.key == pygame.K_UP:
+                self.selection = (self.selection - 1) % len(self.mode_keys)
+            elif event.key == pygame.K_DOWN:
+                self.selection = (self.selection + 1) % len(self.mode_keys)
+
+            elif event.key == pygame.K_RETURN:
+                key = self.mode_keys[self.selection]
+                self.game.mode = MODES[key]          # ✅ 設定目前模式
+                self.game.set_scene(PlayScene(self.game))  # ✅ 進遊戲
+
+    def draw(self, screen: pygame.Surface) -> None:
+        screen.fill(BG_COLOR)
+
+        title = self.big.render("Select Mode", True, UI_COLOR)
+        screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 80))
+
+        # 介紹文字（讓你選的時候就知道差異）
+        desc_map = {
+            "classic":  "Balanced: normal HP, normal obstacles, normal grenades.",
+            "hardcore": "Lower HP, more obstacles, bigger grenade radius (hard).",
+            "chaos":    "More HP, many obstacles, faster grenades, infinite ammo!",
+        }
+
+        for i, key in enumerate(self.mode_keys):
+            m = MODES[key]
+            prefix = "▶ " if i == self.selection else "  "
+            line = f"{prefix}{m.title}"
+            t = self.font.render(line, True, UI_COLOR)
+            screen.blit(t, (WIDTH // 2 - 140, 200 + i * 40))
+
+            d = self.font.render(desc_map[key], True, (170, 170, 190))
+            screen.blit(d, (WIDTH // 2 - 140, 225 + i * 40))
+
+        hint = self.font.render("↑↓ Select | Enter Confirm | Esc Back", True, (170, 170, 190))
         screen.blit(hint, (WIDTH // 2 - hint.get_width() // 2, HEIGHT - 90))
 
 # =========================
