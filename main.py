@@ -41,14 +41,27 @@ class GameMode:
     title: str
     max_hp: int
     obstacle_count: int
-    grenade_radius: int
     infinite_ammo: bool
-    grenade_cd: float  # 手榴彈冷卻秒數
+    grenade_radius: int = GRENADE_RADIUS
+    grenade_cd: float = 1.0
+    grenade_speed: float = GRENADE_SPEED
 
 MODES = {
-    "classic": GameMode("classic", "Classic",  max_hp=100, obstacle_count=9,  grenade_radius=80,  infinite_ammo=False, grenade_cd=1.0),
-    "hardcore": GameMode("hardcore", "Hardcore", max_hp=60, obstacle_count=12, grenade_radius=95,  infinite_ammo=False, grenade_cd=1.4),
-    "chaos": GameMode("chaos", "Chaos",    max_hp=120, obstacle_count=16, grenade_radius=110, infinite_ammo=True,  grenade_cd=0.6),
+    "classic": GameMode(
+        "classic", "Classic",
+        max_hp=100, obstacle_count=9,  grenade_radius=80,
+        infinite_ammo=False, grenade_cd=1.0, grenade_speed=420
+    ),
+    "hardcore": GameMode(
+        "hardcore", "Hardcore",
+        max_hp=60, obstacle_count=12, grenade_radius=95,
+        infinite_ammo=False, grenade_cd=1.4, grenade_speed=460
+    ),
+    "chaos": GameMode(
+        "chaos", "Chaos",
+        max_hp=120, obstacle_count=16, grenade_radius=110,
+        infinite_ammo=True, grenade_cd=0.6, grenade_speed=520
+    ),
 }
 
 
@@ -81,23 +94,43 @@ def angle_to_vector(deg: float) -> pygame.Vector2:
 # =========================
 # Sound (fallback-safe)
 # =========================
+import os
+
 class SoundManager:
-    def __init__(self) -> None:
-        self.enabled = True
+    def __init__(self, master_volume: float = 0.6, channels: int = 16) -> None:
         self.sounds = {}
+        self.master_volume = max(0.0, min(1.0, master_volume))
+
+        # 預設先認為可用，下面 try 失敗再關掉
+        self.enabled = True
+
         try:
-            pygame.mixer.init()
-        except Exception:
+            # mixer 可能還沒 init（有些環境 pygame.init 不一定成功 init mixer）
+            if not pygame.mixer.get_init():
+                pygame.mixer.init()
+            pygame.mixer.set_num_channels(channels)
+        except Exception as e:
             self.enabled = False
+            print(f"[SoundManager] mixer init failed: {e}")
+
+        # 取得檔案所在資料夾，避免相對路徑問題
+        self.base_dir = os.path.dirname(__file__)
 
     def load(self, name: str, filepath: str) -> None:
         if not self.enabled:
             self.sounds[name] = None
             return
+
+        fullpath = filepath
+        # 如果你傳入的是相對路徑，幫你變成「以程式檔所在資料夾為基準」
+        if not os.path.isabs(filepath):
+            fullpath = os.path.join(self.base_dir, filepath)
+
         try:
-            self.sounds[name] = pygame.mixer.Sound(filepath)
-        except Exception:
-            self.sounds[name] = None  # missing file => silent fallback
+            self.sounds[name] = pygame.mixer.Sound(fullpath)
+        except Exception as e:
+            self.sounds[name] = None
+            print(f"[SoundManager] load failed ({name}) {fullpath}: {e}")
 
     def play(self, name: str, volume: float = 0.35) -> None:
         if not self.enabled:
@@ -105,18 +138,22 @@ class SoundManager:
         s = self.sounds.get(name)
         if s is None:
             return
-        s.set_volume(volume)
+
+        v = max(0.0, min(1.0, volume)) * self.master_volume
+        s.set_volume(v)
+
         try:
             s.play()
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[SoundManager] play failed ({name}): {e}")
 
 # =========================
 # Map / Obstacles
 # =========================
 class ArenaMap:
-    def __init__(self, seed: Optional[int] = None) -> None:
+    def __init__(self, seed: Optional[int] = None, obstacle_count: int = OBSTACLE_COUNT) -> None:
         self.rng = random.Random(seed)
+        self.obstacle_count = obstacle_count
         self.obstacles: List[pygame.Rect] = []
 
     def generate(self) -> None:
@@ -131,7 +168,7 @@ class ArenaMap:
         spawn_right = pygame.Rect(WIDTH - ARENA_MARGIN - 220, HEIGHT // 2 - 120, 220, 240)
 
         attempts = 0
-        while len(self.obstacles) < 1 + OBSTACLE_COUNT and attempts < 2000:
+        while len(self.obstacles) < 1 + self.obstacle_count and attempts < 2000:
             attempts += 1
             w = self.rng.randint(50, 150)
             h = self.rng.randint(22, 90)
@@ -419,7 +456,9 @@ class Player:
         self.rect = pygame.Rect(start_pos[0], start_pos[1], PLAYER_SIZE[0], PLAYER_SIZE[1])
         self.pos = pygame.Vector2(self.rect.centerx, self.rect.centery)
 
-        self.hp = MAX_HP
+        self.max_hp = MAX_HP
+        self.hp = self.max_hp
+
         self.speed = PLAYER_SPEED
         self.facing = pygame.Vector2(1, 0) if player_id == 1 else pygame.Vector2(-1, 0)
 
@@ -503,19 +542,20 @@ class Player:
         if before != after and self.weapon.reloading:
             sound.play("reload", volume=0.20)
 
-    def try_throw_grenade(self, sound: SoundManager) -> Optional[Grenade]:
+    def try_throw_grenade(self, sound, grenade_speed, grenade_cd) -> Optional[Grenade]:
         if self.grenade_cd > 0:
             return None
         if self.grenades_left <= 0:
             return None
 
-        self.grenade_cd = 1.0
+        self.grenade_cd = grenade_cd   # ✅ 用模式的冷卻
         self.grenades_left -= 1
 
         gpos = self.pos + self.facing * 24
-        gvel = self.facing * GRENADE_SPEED
+        gvel = self.facing * grenade_speed
         sound.play("grenade", volume=0.25)
-        return Grenade(pos=pygame.Vector2(gpos), vel=pygame.Vector2(gvel), owner_id=self.id, fuse=GRENADE_FUSE_SEC)
+        return Grenade(pos=pygame.Vector2(gpos), vel=pygame.Vector2(gvel),
+                    owner_id=self.id, fuse=GRENADE_FUSE_SEC)
 
     def draw(self, screen: pygame.Surface) -> None:
         pygame.draw.rect(screen, self.color, self.rect, border_radius=10)
@@ -622,9 +662,10 @@ class ModeSelectScene(Scene):
                 self.selection = (self.selection + 1) % len(self.mode_keys)
 
             elif event.key == pygame.K_RETURN:
-                key = self.mode_keys[self.selection]
-                self.game.mode = MODES[key]          # ✅ 設定目前模式
-                self.game.set_scene(PlayScene(self.game))  # ✅ 進遊戲
+                key = self.mode_keys[self.selection]   # "classic"/"hardcore"/"chaos"
+                self.game.mode = MODES[key]            # ✅ 存 GameMode 物件
+                self.game.set_scene(PlayScene(self.game))
+
 
     def draw(self, screen: pygame.Surface) -> None:
         screen.fill(BG_COLOR)
@@ -666,8 +707,17 @@ class PlayScene(Scene):
         self.font = pygame.font.SysFont("Arial", 18)
         self.big = pygame.font.SysFont("Arial", 48, bold=True)
 
+        mode = self.game.mode
+
+        self.mode_hp = mode.max_hp
+        self.mode_obstacles = mode.obstacle_count
+        self.mode_grenade_radius = mode.grenade_radius
+        self.mode_infinite_ammo = mode.infinite_ammo
+        self.mode_grenade_cd = mode.grenade_cd
+        self.mode_grenade_speed = mode.grenade_speed
+
         # map
-        self.map = ArenaMap(seed=random.randint(0, 10**9))
+        self.map = ArenaMap(seed=random.randint(0, 10**9), obstacle_count=self.mode_obstacles)
         self.map.generate()
 
         # players
@@ -688,6 +738,15 @@ class PlayScene(Scene):
             start_pos=(WIDTH - 120 - PLAYER_SIZE[0], HEIGHT // 2 - PLAYER_SIZE[1] // 2),
             keymap=p2_keys,
         )
+        self.p1.max_hp = self.mode_hp
+        self.p2.max_hp = self.mode_hp
+        self.p1.hp = self.p1.max_hp
+        self.p2.hp = self.p2.max_hp
+
+        if self.mode_infinite_ammo:
+            for pl in (self.p1, self.p2):
+                for w in pl.weapons:
+                    w.reserve = 9999
 
         self.bullets: List[Bullet] = []
         self.grenades: List[Grenade] = []
@@ -713,10 +772,13 @@ class PlayScene(Scene):
             if event.key == pygame.K_r:
                 self.p1.try_reload(self.game.sound)
             if event.key == pygame.K_q:
-                g = self.p1.try_throw_grenade(self.game.sound)
+                g = self.p1.try_throw_grenade(self.game.sound, self.mode_grenade_speed, self.mode_grenade_cd)
                 if g: self.grenades.append(g)
-            if event.key in (pygame.K_1, pygame.K_2, pygame.K_3):
-                self.p1.set_weapon(int(event.unicode) - 1)
+            # P1 weapon switch (穩定寫法)
+            if event.key == pygame.K_1: self.p1.set_weapon(0)
+            elif event.key == pygame.K_2: self.p1.set_weapon(1)
+            elif event.key == pygame.K_3: self.p1.set_weapon(2)
+
 
             # P2 actions
             if event.key == pygame.K_SLASH:
@@ -724,7 +786,7 @@ class PlayScene(Scene):
             if event.key == pygame.K_RSHIFT:
                 self.p2.try_reload(self.game.sound)
             if event.key == pygame.K_RCTRL:
-                g = self.p2.try_throw_grenade(self.game.sound)
+                g = self.p2.try_throw_grenade(self.game.sound, self.mode_grenade_speed, self.mode_grenade_cd)
                 if g: self.grenades.append(g)
             if event.key in (pygame.K_KP1, pygame.K_KP2, pygame.K_KP3):
                 # keypad '1' is 257 typically, but pygame gives constants; map directly
@@ -784,19 +846,20 @@ class PlayScene(Scene):
         # 範圍傷害：距離越近傷害越高
         def apply(player: Player):
             d = (player.pos - g.pos).length()
-            if d > GRENADE_RADIUS:
+            if d > self.mode_grenade_radius:
                 return
+
             # 最高 35，最低 8（在邊緣）
-            t = 1.0 - (d / GRENADE_RADIUS)
+            t = 1.0 - (d / self.mode_grenade_radius)
             dmg = int(8 + 27 * t)
             player.take_damage(dmg)
 
-        apply(self.p1) if g.owner_id != self.p1.id else apply(self.p1)  # 自炸也算
-        apply(self.p2) if g.owner_id != self.p2.id else apply(self.p2)
+        apply(self.p1)
+        apply(self.p2)
 
-    def _draw_hp_bar(self, screen, x, y, w, h, hp, color, label):
+    def _draw_hp_bar(self, screen, x, y, w, h, hp, max_hp, color, label):
         pygame.draw.rect(screen, (60, 60, 70), (x, y, w, h), border_radius=8)
-        fill_w = int(w * max(0, hp) / MAX_HP)
+        fill_w = int(w * max(0, hp) / max_hp)
         pygame.draw.rect(screen, color, (x, y, fill_w, h), border_radius=8)
         text = self.font.render(f"{label} HP: {hp}", True, UI_COLOR)
         screen.blit(text, (x, y - 22))
@@ -984,8 +1047,8 @@ class PlayScene(Scene):
         pygame.draw.line(screen, (90, 90, 105), (VIEW_W, 0), (VIEW_W, HEIGHT), 2)
 
         # UI（沿用你原本的）
-        self._draw_hp_bar(screen, 20, 26, 240, 18, self.p1.hp, P1_COLOR, "P1(藍)")
-        self._draw_hp_bar(screen, VIEW_W + 20, 26, 240, 18, self.p2.hp, P2_COLOR, "P2(紅)")
+        self._draw_hp_bar(screen, 20, 26, 240, 18, self.p1.hp, self.p1.max_hp, P1_COLOR, "P1(藍)")
+        self._draw_hp_bar(screen, VIEW_W + 20, 26, 240, 18, self.p2.hp, self.p2.max_hp, P2_COLOR, "P2(紅)")
 
         self._draw_weapon_ui(screen, 20, 60, self.p1, align_right=False)
         self._draw_weapon_ui(screen, WIDTH - 20, 60, self.p2, align_right=True)
@@ -1002,8 +1065,9 @@ class PlayScene(Scene):
 # =========================
 class Game:
     def __init__(self) -> None:
+        pygame.mixer.pre_init(44100, -16, 2, 512)
         pygame.init()
-        self.screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
+        self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         self.render_surface = pygame.Surface((WIDTH, HEIGHT))
         pygame.display.set_caption("Two Player Shooter (OOP)")
         self.clock = pygame.time.Clock()
