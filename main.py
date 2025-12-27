@@ -152,6 +152,8 @@ class Bullet:
     vel: pygame.Vector2
     owner_id: int
     damage: int
+    kind: str = "rect"      # "rect" 或 "line"
+    thickness: int = 4   
 
     def update(self, dt: float) -> None:
         self.rect.x += int(self.vel.x * dt)
@@ -237,6 +239,9 @@ class Weapon:
         reserve: int,
         reload_time: float,
         bullet_speed: float = BULLET_SPEED,
+        bullet_size: Tuple[int, int] = (10, 4),
+        bullet_kind: str = "rect",
+        bullet_thickness: int = 4,
     ) -> None:
         self.name = name
         self.cooldown = cooldown
@@ -246,6 +251,10 @@ class Weapon:
         self.mag_size = mag_size
         self.bullet_speed = bullet_speed
         self.reload_time = reload_time
+        self.bullet_size = bullet_size
+        self.bullet_kind = bullet_kind
+        self.bullet_thickness = bullet_thickness
+
 
         self.mag = mag_size
         self.reserve = reserve
@@ -311,26 +320,39 @@ class Weapon:
             v = angle_to_vector(a) * self.bullet_speed
 
             # 子彈rect以中心建
-            bx = int(origin.x) - BULLET_SIZE[0] // 2
-            by = int(origin.y) - BULLET_SIZE[1] // 2
-            rect = pygame.Rect(bx, by, BULLET_SIZE[0], BULLET_SIZE[1])
+            bw, bh = self.bullet_size
+        bx = int(origin.x) - bw // 2
+        by = int(origin.y) - bh // 2
+        rect = pygame.Rect(bx, by, bw, bh)
 
-            bullets.append(Bullet(rect=rect, vel=v, owner_id=owner_id, damage=self.damage))
+        bullets.append(
+            Bullet(
+                rect=rect,
+                vel=v,
+                owner_id=owner_id,
+                damage=self.damage,
+                kind=self.bullet_kind,
+                thickness=self.bullet_thickness,
+            )
+        )
 
         return bullets
 
 def make_default_weapons() -> List[Weapon]:
     pistol = Weapon(
-        name="Pistol",
-        cooldown=0.22,
-        damage=10,
-        spread_deg=1.2,
-        pellets=1,
-        mag_size=12,
-        reserve=48,
-        reload_time=0.95,
-        bullet_speed=BULLET_SPEED,
+    name="Pistol",
+    cooldown=0.22,
+    damage=10,
+    spread_deg=1.2,
+    pellets=1,
+    mag_size=12,
+    reserve=48,
+    reload_time=0.95,
+    bullet_speed=BULLET_SPEED,
+    bullet_size=(10, 5),
+    bullet_kind="rect",
     )
+
     rifle = Weapon(
         name="Rifle",
         cooldown=0.10,
@@ -341,7 +363,11 @@ def make_default_weapons() -> List[Weapon]:
         reserve=120,
         reload_time=1.25,
         bullet_speed=BULLET_SPEED * 1.08,
+        bullet_size=(26, 2),       # 細長
+        bullet_kind="line",        # 用線畫（看起來更像步槍子彈）
+        bullet_thickness=2,
     )
+
     shotgun = Weapon(
         name="Shotgun",
         cooldown=0.65,
@@ -352,7 +378,10 @@ def make_default_weapons() -> List[Weapon]:
         reserve=30,
         reload_time=1.35,
         bullet_speed=BULLET_SPEED * 0.95,
+        bullet_size=(6, 6),
+        bullet_kind="rect",
     )
+
     return [pistol, rifle, shotgun]
 
 # =========================
@@ -776,30 +805,32 @@ class PlayScene(Scene):
                 gun_color = (30, 30, 35)
                 gun_outline = (220, 220, 235)
 
-                # 槍的起點：前手末端附近
-                gx, gy = front_hand_end
-
+                gx, gy = front_hand_end  # 槍起點（前手末端）
                 wpn = pl.weapon.name
 
+                def rect_facing(x, y, w, h, fx):
+                    """fx=1 面右: 從x往右畫；fx=-1 面左: 從x往左畫，但Rect寬度仍為正"""
+                    if fx >= 0:
+                        return pygame.Rect(x, y, w, h)
+                    else:
+                        return pygame.Rect(x - w, y, w, h)
+
                 if wpn == "Pistol":
-                    # 小短槍：小矩形
-                    gun_rect = pygame.Rect(gx, gy - 3, fx * 14, 6)   # fx 決定左右
+                    gun_rect = rect_facing(gx, gy - 3, 14, 6, fx)
                     pygame.draw.rect(view_surf, gun_color, gun_rect)
                     pygame.draw.rect(view_surf, gun_outline, gun_rect, 1)
 
                 elif wpn == "Rifle":
-                    # 長槍：長矩形 + 槍托
-                    barrel = pygame.Rect(gx, gy - 3, fx * 26, 6)
-                    stock  = pygame.Rect(gx - fx * 6, gy - 2, fx * 8, 8)
+                    barrel = rect_facing(gx, gy - 3, 26, 6, fx)
+                    stock  = rect_facing(gx - fx * 6, gy - 2, 8, 8, fx)  # 槍托靠近身體
                     pygame.draw.rect(view_surf, gun_color, barrel)
                     pygame.draw.rect(view_surf, gun_color, stock)
                     pygame.draw.rect(view_surf, gun_outline, barrel, 1)
                     pygame.draw.rect(view_surf, gun_outline, stock, 1)
 
                 elif wpn == "Shotgun":
-                    # 霰彈槍：中長 + 前端加粗
-                    barrel = pygame.Rect(gx, gy - 3, fx * 22, 6)
-                    muzzle = pygame.Rect(gx + fx * 18, gy - 4, fx * 6, 8)
+                    barrel = rect_facing(gx, gy - 3, 22, 6, fx)
+                    muzzle = rect_facing(gx + fx * 18, gy - 4, 6, 8, fx)  # 前端加粗
                     pygame.draw.rect(view_surf, gun_color, barrel)
                     pygame.draw.rect(view_surf, gun_color, muzzle)
                     pygame.draw.rect(view_surf, gun_outline, barrel, 1)
@@ -843,7 +874,18 @@ class PlayScene(Scene):
             # bullets
             for b in self.bullets:
                 col = (180, 220, 255) if b.owner_id == 1 else (255, 200, 200)
-                pygame.draw.rect(view_surf, col, shift_rect(b.rect), border_radius=4)
+                sr = shift_rect(b.rect)
+
+                if b.kind == "line":
+                    # 用速度方向畫一條線，長度用 rect.w 代表
+                    dirv = safe_normalize(b.vel)
+                    cx, cy = sr.center
+                    half = sr.w // 2
+                    p1 = (int(cx - dirv.x * half), int(cy - dirv.y * half))
+                    p2 = (int(cx + dirv.x * half), int(cy + dirv.y * half))
+                    pygame.draw.line(view_surf, col, p1, p2, b.thickness)
+                else:
+                    pygame.draw.rect(view_surf, col, sr, border_radius=4)
 
             # players（直接畫 shifted）
             for pl in (self.p1, self.p2):
