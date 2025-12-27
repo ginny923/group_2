@@ -772,14 +772,11 @@ class PlayScene(Scene):
                 head_r = 9
                 leg_len = 14
                 arm_len = 12
-
                 # 讓整個人隨 facing 左右鏡像
                 fx = 1 if pl.facing.x >= 0 else -1
-
                 # 顏色（用玩家顏色）
                 col = pl.color
                 outline = (20, 20, 25)
-
                 # 頭
                 pygame.draw.circle(view_surf, col, (cx, cy - body_h//2 - head_r + 2), head_r)
                 pygame.draw.circle(view_surf, outline, (cx, cy - body_h//2 - head_r + 2), head_r, 2)
