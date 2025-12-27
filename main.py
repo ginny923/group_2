@@ -272,6 +272,28 @@ class Grenade:
         # fuse 倒數
         self.fuse -= dt
 
+@dataclass
+class Explosion:
+    pos: pygame.Vector2
+    max_radius: int
+    duration: float = 0.35  # 爆炸動畫總時間(秒)
+    t: float = 0.0          # 已經過時間
+
+    def update(self, dt: float) -> None:
+        self.t += dt
+
+    def done(self) -> bool:
+        return self.t >= self.duration
+
+    def radius(self) -> float:
+        p = max(0.0, min(1.0, self.t / self.duration))
+        p = 1.0 - (1.0 - p) * (1.0 - p)  # ease-out
+        return self.max_radius * p
+
+    def alpha(self) -> int:
+        p = max(0.0, min(1.0, self.t / self.duration))
+        return int(255 * (1.0 - p))
+
 class Weapon:
     """
     OOP武器：每把武器都有
@@ -750,6 +772,7 @@ class PlayScene(Scene):
 
         self.bullets: List[Bullet] = []
         self.grenades: List[Grenade] = []
+        self.explosions: List[Explosion] = []
         self.winner: Optional[str] = None
 
     def reset_round(self) -> None:
@@ -853,9 +876,21 @@ class PlayScene(Scene):
             self.winner = "P2"
         elif not self.p2.alive():
             self.winner = "P1"
+        
+        # explosions
+        for e in self.explosions[:]:
+            e.update(dt)
+            if e.done():
+                self.explosions.remove(e)
+
 
     def _explode(self, g: Grenade) -> None:
         self.game.sound.play("boom", volume=0.35)
+
+        # ✅ 生成爆炸動畫（用模式半徑）
+        self.explosions.append(
+            Explosion(pos=pygame.Vector2(g.pos), max_radius=self.mode_grenade_radius, duration=0.35)
+        )
 
         # 範圍傷害：距離越近傷害越高
         def apply(player: Player):
@@ -1021,6 +1056,30 @@ class PlayScene(Scene):
                 pygame.draw.circle(view_surf, (220, 220, 120), shift_pos(g.pos), 7)
                 frac = max(0.0, min(1.0, g.fuse / GRENADE_FUSE_SEC))
                 pygame.draw.circle(view_surf, (180, 180, 110), shift_pos(g.pos), int(16 * frac), 1)
+
+            # explosions (shockwave + core)
+            for e in self.explosions:
+                r = int(e.radius())
+                a = e.alpha()
+
+                # 在視窗座標的位置
+                ex, ey = shift_pos(e.pos)
+
+                # 用一個帶 alpha 的小圖層來畫（pygame.draw.circle 本身不帶 alpha）
+                size = max(2, r * 2 + 8)
+                fx = ex - size // 2
+                fy = ey - size // 2
+
+                surf = pygame.Surface((size, size), pygame.SRCALPHA)
+
+                # 外圈 shockwave
+                pygame.draw.circle(surf, (255, 230, 120, a), (size//2, size//2), r, 3)
+
+                # 內核亮點（比較亮，alpha 稍高）
+                core_r = max(2, int(r * 0.35))
+                pygame.draw.circle(surf, (255, 200, 80, min(255, a + 40)), (size//2, size//2), core_r)
+
+                view_surf.blit(surf, (fx, fy))
 
             # bullets
             for b in self.bullets:
