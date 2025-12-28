@@ -1388,7 +1388,6 @@ class PlayScene(Scene):
             # mines explosion fx
             if self.mines:
                 self.mines.draw_fx(view_surf, shift_pos)
-
             # explosions (shockwave + core)
             for e in self.explosions:
                 r = int(e.radius())
