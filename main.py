@@ -1385,7 +1385,6 @@ class PlayScene(Scene):
             # mines (draw under players/bullets 都可以，你想更明顯就放 players 前面)
             if self.mines:
                 self.mines.draw(view_surf, shift_pos)
-
             # mines explosion fx
             if self.mines:
                 self.mines.draw_fx(view_surf, shift_pos)
