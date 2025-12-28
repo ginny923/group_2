@@ -568,7 +568,7 @@ class Player:
         origin = self.pos + self.facing * (PLAYER_SIZE[0] * 0.55)
         bullets = self.weapon.fire(origin=origin, dir_vec=self.facing, owner_id=self.id)
         if bullets:
-            sound.play("shoot", volume=0.25)
+            sound.play(self.weapon.name, volume=0.3)
         return bullets
 
     def try_reload(self, sound: SoundManager) -> None:
@@ -882,6 +882,17 @@ class Game:
         pygame.mixer.pre_init(44100, -16, 2, 512)
         pygame.init()
     
+        # --- 緊接著加入這幾行 ---
+        pygame.mixer.init()                  # 啟動音效系統
+        pygame.mixer.music.load("bgm.mp3")    # 載入音樂檔案 (檔名要跟資料夾裡的一樣)
+        pygame.mixer.music.set_volume(0.7)    # 設定音量 (0.0 到 1.0)
+        pygame.mixer.music.play(-1)           # 開始播放，-1 代表無限循環
+
+        # 修改 Game.__init__ 內部
+        self.sound = SoundManager() 
+        self.sound.load("Pistol", "pistol_shot.mp3")  # 標籤名要對應武器名稱
+        self.sound.load("Rifle", "rifle_shot.mp3")
+        self.sound.load("Shotgun", "shotgun_shot.mp3")
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         self.render_surface = pygame.Surface((WIDTH, HEIGHT))
 
@@ -922,16 +933,6 @@ class Game:
 
         self.leaderboard = LeaderboardManager()
 
-        # sound (optional)
-        self.sound = SoundManager()
-        # 你可以放音檔到同資料夾並改成對應檔名，例如:
-        # self.sound.load("shoot", "shoot.wav")
-        # 這裡先用「沒有音檔也不會報錯」的方式
-        self.sound.load("shoot", "shoot.wav")
-        self.sound.load("reload", "reload.wav")
-        self.sound.load("hit", "hit.wav")
-        self.sound.load("grenade", "grenade.wav")
-        self.sound.load("boom", "boom.wav")
         self.mode = MODES["classic"]
         self.p1_name = "P1"
         self.p2_name = "P2"
