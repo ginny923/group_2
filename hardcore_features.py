@@ -6,13 +6,11 @@ from typing import Callable, List, Optional, Tuple
 
 import pygame
 
-
 # -------------------------
 # helpers
 # -------------------------
 def _rects_overlap_any(r: pygame.Rect, rects: List[pygame.Rect]) -> bool:
     return any(r.colliderect(o) for o in rects)
-
 
 def _clamp_rect_in_arena(rect: pygame.Rect, world_w: int, world_h: int, arena_margin: int) -> None:
     left = arena_margin
