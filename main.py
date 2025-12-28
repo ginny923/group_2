@@ -504,6 +504,9 @@ class Player:
         self.grenade_cd = 0.0  # 手榴彈冷卻
         self.grenades_left = 3
 
+        self.sound = None            # PlayScene 會塞進來
+        self.hurt_sfx_cd = 0.0       # 受傷音效冷卻
+
     @property
     def weapon(self) -> Weapon:
         return self.weapons[self.weapon_index]
@@ -523,7 +526,19 @@ class Player:
             self.weapon_index = idx
 
     def take_damage(self, dmg: int) -> None:
+        if dmg <= 0 or self.hp <= 0:
+            return
+
+        old = self.hp
         self.hp = max(0, self.hp - dmg)
+
+        # ✅ 真的有扣血才叫（避免 0 傷害、或已經死了）
+        if self.hp < old:
+            # ✅ 冷卻避免連續狂叫（可調 0.25~0.6）
+            if self.sound is not None and self.hurt_sfx_cd <= 0.0:
+                key = "scream_p1" if self.id == 1 else "scream_p2"
+                self.sound.play(key, volume=0.55)
+                self.hurt_sfx_cd = 0.35
 
     def _try_move_axis(self, dx: float, dy: float, obstacles: List[pygame.Rect],
                    world_w: int, world_h: int) -> None:
@@ -548,6 +563,9 @@ class Player:
 
         if self.grenade_cd > 0:
             self.grenade_cd = max(0.0, self.grenade_cd - dt)
+
+        if self.hurt_sfx_cd > 0:
+            self.hurt_sfx_cd = max(0.0, self.hurt_sfx_cd - dt)
 
         # 移動
         vx = 0.0

@@ -73,6 +73,9 @@ class PlayScene(Scene):
             keymap=p2_keys,
         )
 
+        self.p1.sound = self.game.sound
+        self.p2.sound = self.game.sound
+
         # 產生出生區 avoid（避免桶/地板生成在出生點）
         spawn_left  = pygame.Rect(ARENA_MARGIN, self.world_h // 2 - 140, 260, 280)
         spawn_right = pygame.Rect(self.world_w - ARENA_MARGIN - 260, self.world_h // 2 - 140, 260, 280)
