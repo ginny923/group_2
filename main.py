@@ -771,7 +771,6 @@ class NameInputScene(Scene):
             label = "P1 Name:" if i == 0 else "P2 Name:"
             label_surf = self.font.render(label, True, UI_COLOR)
             screen.blit(label_surf, (WIDTH // 2 - box_w // 2, start_y + i * 110 - 26))
-
             # box
             x = WIDTH // 2 - box_w // 2
             y = start_y + i * 110
