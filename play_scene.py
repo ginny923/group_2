@@ -403,12 +403,56 @@ class PlayScene(Scene):
         if self.barrels:
             self.barrels.explode_at(g.pos, [self.p1, self.p2])  # 爆炸可以引爆附近桶
 
-    def _draw_hp_bar(self, screen, x, y, w, h, hp, max_hp, color, label):
-        pygame.draw.rect(screen, (60, 60, 70), (x, y, w, h), border_radius=8)
+    def _draw_hp_bar(self, screen, x, y, w, h, hp, max_hp, color, label, title="PLAYER", align_right=False):
+
+        # === [核心修改] 如果靠右，重新計算整個血條的 X 座標 ===
+        # 原本傳入的 x 是左側座標，若要靠右，我們將其視為右側邊界並往左推 w
+        actual_x = x - w if align_right else x
+        
+        # 1. 繪製底部深色邊框 (使用實際計算後的 actual_x)
+        outline_rect = pygame.Rect(actual_x - 2, y - 2, w + 4, h + 4)
+        pygame.draw.rect(screen, (30, 30, 35), outline_rect, border_radius=4)
+        
+        # 2. 繪製空槽背景
+        pygame.draw.rect(screen, (50, 50, 60), (actual_x, y, w, h), border_radius=2)
+        
+        # 3. 計算填充寬度
         fill_w = int(w * max(0, hp) / max_hp)
-        pygame.draw.rect(screen, color, (x, y, fill_w, h), border_radius=8)
-        text = self.font.render(f"{label} HP: {hp}", True, UI_COLOR)
-        screen.blit(text, (x, y - 22))
+        
+        if fill_w > 0:
+            # 判斷填充色塊的起始點
+            if align_right:
+                # 靠右對齊：填充色塊從「總寬度右端」開始往左填
+                fill_draw_x = actual_x + (w - fill_w)
+            else:
+                # 靠左對齊：填充色塊從 actual_x 開始
+                fill_draw_x = actual_x
+            
+            # 繪製主填充色
+            main_fill = pygame.Rect(fill_draw_x, y, fill_w, h)
+            pygame.draw.rect(screen, color, main_fill, border_radius=2)
+            
+            # 增加上方高光能量條
+            bright_color = (min(255, color[0]+60), min(255, color[1]+60), min(255, color[2]+60))
+            pygame.draw.rect(screen, bright_color, (fill_draw_x, y, fill_w, h // 3), border_radius=2)
+            
+            # 4. 能量刻度線 (位置固定在 actual_x 的相對位置)
+            for i in range(1, 10):
+                line_x = actual_x + (w * i // 10)
+                pygame.draw.line(screen, (20, 20, 25), (line_x, y), (line_x, y + h - 1), 1)
+
+        # 5. 標籤文字 (根據方向調整對齊位置)
+        hp_percent = int((hp / max_hp) * 100)
+        label_text = self.font.render(f"{title}: {label.upper()}", True, (200, 200, 210))
+        val_text = self.font.render(f"{hp_percent}%", True, color)
+        
+        if align_right:
+            # 文字也靠右對齊
+            screen.blit(label_text, (actual_x + w - label_text.get_width(), y - 24))
+            screen.blit(val_text, (actual_x, y - 24))
+        else:
+            screen.blit(label_text, (actual_x, y - 24))
+            screen.blit(val_text, (actual_x + w - val_text.get_width(), y - 24))
 
     def _draw_weapon_ui(self, screen, x, y, player: Player, align_right: bool = False):
         wpn = player.weapon
@@ -760,12 +804,12 @@ class PlayScene(Scene):
         pygame.draw.line(screen, (90, 90, 105), (VIEW_W, 0), (VIEW_W, HEIGHT), 2)
         # UI（沿用你原本的）
         self._draw_hp_bar(screen, 20, 26, 240, 18,
-                        self.p1.hp, self.p1.max_hp, P1_COLOR,
-                        self.p1.name)
+                self.p1.hp, self.p1.max_hp, P1_COLOR,
+                self.p1.name, title="PLAYER 1")
 
-        self._draw_hp_bar(screen, VIEW_W + 20, 26, 240, 18,
+        self._draw_hp_bar(screen, WIDTH - 20, 26, 240, 18,
                         self.p2.hp, self.p2.max_hp, P2_COLOR,
-                        self.p2.name)
+                        self.p2.name, title="PLAYER 2", align_right=True)
 
         self._draw_weapon_ui(screen, 20, 60, self.p1, align_right=False)
         self._draw_weapon_ui(screen, WIDTH - 20, 60, self.p2, align_right=True)
