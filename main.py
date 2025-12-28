@@ -858,7 +858,7 @@ class PlayScene(Scene):
         self.mode_grenade_speed = mode.grenade_speed
 
         self.win_timer = 0.0
-        self.win_delay = 1.2   # 勝利畫面停 1.2 秒後進 leaderboard
+        self.win_delay = 1.2  # 勝利畫面停 1.2 秒後進 leaderboard
 
         self.world_w = mode.world_w
         self.world_h = mode.world_h
