@@ -16,7 +16,6 @@ import os
 # =========================
 WIDTH, HEIGHT = 1000, 600
 FPS = 60
-
 ARENA_MARGIN = 40
 BG_COLOR = (18, 18, 22)
 UI_COLOR = (235, 235, 245)
