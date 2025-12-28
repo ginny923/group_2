@@ -894,6 +894,9 @@ class Game:
         self.sound.load("Rifle", "rifle_shot.mp3")
         self.sound.load("Shotgun", "shotgun_shot.mp3")
         self.sound.load("apple", "apple.mp3")
+        self.sound.load("scream_p1", "scream.mp3")
+        self.sound.load("scream_p2", "scream2.mp3")
+
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         self.render_surface = pygame.Surface((WIDTH, HEIGHT))
 
