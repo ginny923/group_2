@@ -1350,7 +1350,6 @@ class PlayScene(Scene):
                 # 眼睛/方向點（用 facing）
                 eye = (cx + fx * 6, cy - body_h//2 - head_r + 2)
                 pygame.draw.circle(view_surf, (245, 245, 245), eye, 3)
-
             # arena border
             arena_rect = pygame.Rect(
                 ARENA_MARGIN, ARENA_MARGIN,
