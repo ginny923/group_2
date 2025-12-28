@@ -808,7 +808,6 @@ class ModeSelectScene(Scene):
                 self.game.mode = MODES[key]            # ✅ 存 GameMode 物件
                 self.game.set_scene(PlayScene(self.game))
 
-
     def draw(self, screen: pygame.Surface) -> None:
         screen.fill(BG_COLOR)
 
