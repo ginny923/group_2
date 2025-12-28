@@ -941,7 +941,7 @@ class PlayScene(Scene):
             self.apple_sys = AppleSystem(
                 world_w=WIDTH, world_h=HEIGHT, arena_margin=ARENA_MARGIN,
                 obstacles=self.map.obstacles,
-                max_apples=3,            # ✅ 最多 3 顆
+                max_apples=3,      # ✅ 最多 3 顆
                 heal_amount=15,    # 回血量
                 spawn_cd_range=(6.0, 10.0),
             )
