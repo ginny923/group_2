@@ -1452,7 +1452,6 @@ class PlayScene(Scene):
             if self.fog:
                 fx, fy = shift_pos(focus_player.pos)
                 self.fog.apply(view_surf, (fx, fy))
-
         left_view = pygame.Surface((VIEW_W, VIEW_H))
         right_view = pygame.Surface((VIEW_W, VIEW_H))
         cam1 = camera_offset(self.p1.pos)
@@ -1465,7 +1464,6 @@ class PlayScene(Scene):
         screen.fill(BG_COLOR)
         screen.blit(left_view, (0, 0))
         screen.blit(right_view, (VIEW_W, 0))
-
         # 中間分隔線
         pygame.draw.line(screen, (90, 90, 105), (VIEW_W, 0), (VIEW_W, HEIGHT), 2)
 
