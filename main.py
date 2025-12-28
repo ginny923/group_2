@@ -637,7 +637,6 @@ class MenuScene(Scene):
 
     def draw(self, screen: pygame.Surface) -> None:
         screen.fill(BG_COLOR)
-
         # ===== menu items: 白底圓角方塊 + 黑字 =====
         box_w, box_h = 320, 52
         start_y = 250
@@ -670,7 +669,7 @@ class MenuScene(Scene):
             tx = x + (box_w - text.get_width()) // 2 + shift
             ty = y + (box_h - text.get_height()) // 2
             screen.blit(text, (tx, ty))
-            
+
 class NameInputScene(Scene):
     def __init__(self, game: "Game") -> None:
         self.game = game
