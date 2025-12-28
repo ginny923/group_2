@@ -184,7 +184,13 @@ class AppleSystem:
 
         self.apples.append(Apple(rect=r, heal=self.heal_amount))
 
-    def update(self, dt: float, players: List[object], avoid_rects: Optional[List[pygame.Rect]] = None) -> None:
+    def update(
+        self,
+        dt: float,
+        players: List[object],
+        avoid_rects: Optional[List[pygame.Rect]] = None,
+        sound=None,
+    ) -> None:
         # 生成
         self._spawn_t -= dt
         if self._spawn_t <= 0:
@@ -194,13 +200,16 @@ class AppleSystem:
 
         # 撿到判定
         for pl in players:
-            # 需要 player 有 body_hitbox(), hp, max_hp
             hit = pl.body_hitbox()
 
             for a in self.apples[:]:
                 if hit.colliderect(a.rect):
                     pl.hp = min(pl.max_hp, pl.hp + a.heal)
                     self.apples.remove(a)
+
+                    # ✅ 播 apple 音效
+                    if sound is not None:
+                        sound.play("apple", volume=0.7)
 
     def draw(self, surf: pygame.Surface, to_view_rect: Callable[[pygame.Rect], pygame.Rect]) -> None:
         for a in self.apples:

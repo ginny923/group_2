@@ -893,6 +893,7 @@ class Game:
         self.sound.load("Pistol", "pistol_shot.mp3")  # 標籤名要對應武器名稱
         self.sound.load("Rifle", "rifle_shot.mp3")
         self.sound.load("Shotgun", "shotgun_shot.mp3")
+        self.sound.load("apple", "apple.mp3")
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         self.render_surface = pygame.Surface((WIDTH, HEIGHT))
 

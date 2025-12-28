@@ -285,7 +285,7 @@ class PlayScene(Scene):
         if getattr(self, "apple_sys", None) is not None:
             spawn_left  = pygame.Rect(ARENA_MARGIN, self.world_h // 2 - 120, 220, 240)
             spawn_right = pygame.Rect(self.world_w - ARENA_MARGIN - 220, self.world_h // 2 - 120, 220, 240)
-            self.apple_sys.update(dt, [self.p1, self.p2], avoid_rects=[spawn_left, spawn_right])
+            self.apple_sys.update(dt, [self.p1, self.p2], avoid_rects=[spawn_left, spawn_right], sound=self.game.sound)
 
         if getattr(self, "portal_sys", None) is not None:
             self.portal_sys.update(dt, [self.p1, self.p2])
