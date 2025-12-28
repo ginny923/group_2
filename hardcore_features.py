@@ -66,10 +66,10 @@ class PoisonZoneSystem:
         world_w: int,
         world_h: int,
         arena_margin: int,
-        shrink_interval: float = 7.0,
+        shrink_interval: float = 20.0,
         shrink_step: int = 26,
         min_size: Tuple[int, int] = (340, 220),
-        damage_per_sec: float = 12.0,
+        damage_per_sec: float = 1.0,
     ) -> None:
         self.world_w = world_w
         self.world_h = world_h
