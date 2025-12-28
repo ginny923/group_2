@@ -843,7 +843,6 @@ class ModeSelectScene(Scene):
                 from play_scene import PlayScene
                 self.game.set_scene(PlayScene(self.game))
 
-
     def draw(self, screen: pygame.Surface) -> None:
         if getattr(self.game, "mode_bg", None) is not None:
             screen.blit(self.game.mode_bg, (0, 0))
