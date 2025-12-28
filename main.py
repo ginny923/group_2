@@ -663,7 +663,7 @@ class MenuScene(Scene):
 
             # ✅ 被選到就畫箭頭（黑色三角形）
             if selected:
-                cx = x + 22     # 箭頭中心 x（在按鈕內左側）
+                cx = x + 22   # 箭頭中心 x（在按鈕內左側）
                 cy = y + box_h // 2  # 箭頭中心 y
                 pts = [(cx - 6, cy - 7), (cx - 6, cy + 7), (cx + 7, cy)]
                 pygame.draw.polygon(screen, (0, 0, 0), pts)
