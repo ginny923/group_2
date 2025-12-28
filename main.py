@@ -1395,7 +1395,6 @@ class PlayScene(Scene):
                 a = e.alpha()
                 # 在視窗座標的位置
                 ex, ey = shift_pos(e.pos)
-
                 # 用一個帶 alpha 的小圖層來畫（pygame.draw.circle 本身不帶 alpha）
                 size = max(2, r * 2 + 8)
                 fx = ex - size // 2
