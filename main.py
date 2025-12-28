@@ -752,7 +752,10 @@ class NameInputScene(Scene):
             self.cursor_on = not self.cursor_on
 
     def draw(self, screen: pygame.Surface) -> None:
-        screen.fill(BG_COLOR)
+        if getattr(self.game, "menuinput_bg", None) is not None:
+            screen.blit(self.game.menuinput_bg, (0, 0))
+        else:
+            screen.fill(BG_COLOR)
 
         title = self.big.render("Enter Player Names", True, UI_COLOR)
         screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 90))
@@ -894,6 +897,16 @@ class Game:
         except Exception as e:
             print("[menu_bg] load failed:", e)
             self.menu_bg = None
+
+
+        # ✅ menuinput_bg（輸入名字那頁）
+        menuinput_path = os.path.join(base_dir, "menuinput_bg.png")
+        try:
+            img2 = pygame.image.load(menuinput_path).convert()
+            self.menuinput_bg = pygame.transform.smoothscale(img2, (WIDTH, HEIGHT))
+        except Exception as e:
+            print("[menuinput_bg] load failed:", e)
+            self.menuinput_bg = None
 
         pygame.display.set_caption("Two Player Shooter (OOP)")
         self.clock = pygame.time.Clock()
