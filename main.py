@@ -1381,7 +1381,6 @@ class PlayScene(Scene):
                 self.apple_sys.draw(view_surf, shift_rect)
             if self.portal_sys is not None:
                 self.portal_sys.draw(view_surf, shift_pos)
-
             # mines (draw under players/bullets 都可以，你想更明顯就放 players 前面)
             if self.mines:
                 self.mines.draw(view_surf, shift_pos)
