@@ -9,6 +9,7 @@ from hardcore_features import PoisonZoneSystem, MineSystem
 from chaos_features import BarrelSystem, BreakableFloorSystem, FogOfWarSystem
 
 import pygame
+import os
 
 # =========================
 # Global Config
@@ -636,7 +637,11 @@ class MenuScene(Scene):
                     self.game.running = False
 
     def draw(self, screen: pygame.Surface) -> None:
-        screen.fill(BG_COLOR)
+        if getattr(self.game, "menu_bg", None) is not None:
+            screen.blit(self.game.menu_bg, (0, 0))
+        else:
+            screen.fill(BG_COLOR)
+
         # ===== menu items: 白底圓角方塊 + 黑字 =====
         box_w, box_h = 320, 52
         start_y = 250
@@ -667,7 +672,7 @@ class MenuScene(Scene):
             text = self.font.render(it, True, (0, 0, 0))
             shift = 14 if selected else 0
             tx = x + (box_w - text.get_width()) // 2 + shift
-            ty = y + (box_h - text.get_height()) // 2
+            ty = y + (box_h - text.get_height()) // 2 + 6
             screen.blit(text, (tx, ty))
 
 class NameInputScene(Scene):
@@ -870,8 +875,21 @@ class Game:
     def __init__(self) -> None:
         pygame.mixer.pre_init(44100, -16, 2, 512)
         pygame.init()
+    
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         self.render_surface = pygame.Surface((WIDTH, HEIGHT))
+
+        # ✅ load menu background once
+        base_dir = os.path.dirname(__file__)
+        bg_path = os.path.join(base_dir, "menu_bg.png")
+
+        try:
+            img = pygame.image.load(bg_path).convert()   # png 沒透明就用 convert()
+            self.menu_bg = pygame.transform.smoothscale(img, (WIDTH, HEIGHT))
+        except Exception as e:
+            print("[menu_bg] load failed:", e)
+            self.menu_bg = None
+
         pygame.display.set_caption("Two Player Shooter (OOP)")
         self.clock = pygame.time.Clock()
         self.running = True
