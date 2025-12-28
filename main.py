@@ -537,7 +537,7 @@ class Player:
             # ✅ 冷卻避免連續狂叫（可調 0.25~0.6）
             if self.sound is not None and self.hurt_sfx_cd <= 0.0:
                 key = "scream_p1" if self.id == 1 else "scream_p2"
-                self.sound.play(key, volume=0.55)
+                self.sound.play(key, volume=20)
                 self.hurt_sfx_cd = 0.35
 
     def _try_move_axis(self, dx: float, dy: float, obstacles: List[pygame.Rect],
@@ -903,7 +903,7 @@ class Game:
         # --- 緊接著加入這幾行 ---
         pygame.mixer.init()                  # 啟動音效系統
         pygame.mixer.music.load("bgm.mp3")    # 載入音樂檔案 (檔名要跟資料夾裡的一樣)
-        pygame.mixer.music.set_volume(0.7)    # 設定音量 (0.0 到 1.0)
+        pygame.mixer.music.set_volume(0.2)    # 設定音量 (0.0 到 1.0)
         pygame.mixer.music.play(-1)           # 開始播放，-1 代表無限循環
 
         # 修改 Game.__init__ 內部
