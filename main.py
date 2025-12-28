@@ -637,17 +637,40 @@ class MenuScene(Scene):
 
     def draw(self, screen: pygame.Surface) -> None:
         screen.fill(BG_COLOR)
-        title = self.big.render("Two Player Shooter", True, UI_COLOR)
-        screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 120))
+
+        # ===== menu items: 白底圓角方塊 + 黑字 =====
+        box_w, box_h = 320, 52
+        start_y = 250
+        gap = 18
 
         for i, it in enumerate(self.items):
-            prefix = "▶ " if i == self.selection else "  "
-            t = self.font.render(prefix + it, True, UI_COLOR)
-            screen.blit(t, (WIDTH // 2 - 90, 260 + i * 38))
+            x = WIDTH // 2 - box_w // 2
+            y = start_y + i * (box_h + gap)
 
-        hint = self.font.render("Use ↑↓ and Enter", True, (170, 170, 190))
-        screen.blit(hint, (WIDTH // 2 - hint.get_width() // 2, HEIGHT - 90))
+            selected = (i == self.selection)
 
+            # 白色圓角方塊（選到的可以稍微變灰）
+            fill = (245, 245, 245) if not selected else (230, 230, 230)
+            pygame.draw.rect(screen, fill, (x, y, box_w, box_h), border_radius=14)
+
+            # 選到的加黑框
+            if selected:
+                pygame.draw.rect(screen, (20, 20, 20), (x, y, box_w, box_h), width=3, border_radius=14)
+
+            # ✅ 被選到就畫箭頭（黑色三角形）
+            if selected:
+                cx = x + 22          # 箭頭中心 x（在按鈕內左側）
+                cy = y + box_h // 2  # 箭頭中心 y
+                pts = [(cx - 6, cy - 7), (cx - 6, cy + 7), (cx + 7, cy)]
+                pygame.draw.polygon(screen, (0, 0, 0), pts)
+
+            # 黑色字體（置中在方塊內）
+            text = self.font.render(it, True, (0, 0, 0))
+            shift = 14 if selected else 0
+            tx = x + (box_w - text.get_width()) // 2 + shift
+            ty = y + (box_h - text.get_height()) // 2
+            screen.blit(text, (tx, ty))
+            
 class NameInputScene(Scene):
     def __init__(self, game: "Game") -> None:
         self.game = game
