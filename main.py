@@ -1418,7 +1418,6 @@ class PlayScene(Scene):
             for b in self.bullets:
                 col = (180, 220, 255) if b.owner_id == 1 else (255, 200, 200)
                 sr = shift_rect(b.rect)
-
                 if b.kind == "line":
                     # 用速度方向畫一條線，長度用 rect.w 代表
                     dirv = safe_normalize(b.vel)
