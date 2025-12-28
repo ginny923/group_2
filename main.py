@@ -892,7 +892,7 @@ class PlayScene(Scene):
             keymap=p2_keys,
         )
 
-                # ===== Classic features: apples + portals =====
+        # ===== Classic features: apples + portals =====
         self.apple_sys = None
         self.portal_sys = None
 
