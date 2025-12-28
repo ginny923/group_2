@@ -5,6 +5,7 @@ from typing import List, Optional, Tuple
 
 from leaderboard import LeaderboardManager, LeaderboardScene
 from classic_features import AppleSystem, PortalPairSystem
+from hardcore_features import PoisonZoneSystem, MineSystem
 
 import pygame
 
@@ -890,6 +891,43 @@ class PlayScene(Scene):
             keymap=p2_keys,
         )
 
+        # -------------------------
+        # ✅ Hardcore features: Poison + Mines
+        # -------------------------
+        self.poison = None
+        self.mines = None
+
+        if self.game.mode.key == "hardcore":
+            from hardcore_features import PoisonZoneSystem, MineSystem
+
+            # 避免地雷生成在出生點附近：用玩家出生區加大當 avoid
+            avoid = [
+                self.p1.rect.inflate(240, 240),
+                self.p2.rect.inflate(240, 240),
+            ]
+
+            self.poison = PoisonZoneSystem(
+                world_w=self.world_w,
+                world_h=self.world_h,
+                arena_margin=ARENA_MARGIN,
+                shrink_interval=7.0,
+                shrink_step=26,
+                min_size=(int(self.world_w * 0.40), int(self.world_h * 0.35)),
+                damage_per_sec=12.0,
+            )
+
+            self.mines = MineSystem(
+                world_w=self.world_w,
+                world_h=self.world_h,
+                arena_margin=ARENA_MARGIN,
+                obstacles=self.map.obstacles,
+                mine_count=7,
+                mine_radius=13,
+                blast_radius=105,
+                max_damage=48,
+                min_damage=12,
+            )
+            self.mines.spawn_initial(avoid_rects=avoid)
         # ===== Classic features: apples + portals =====
         self.apple_sys = None
         self.portal_sys = None
@@ -995,6 +1033,12 @@ class PlayScene(Scene):
         keys = pygame.key.get_pressed()
         self.p1.update(dt, keys, self.map.obstacles, self.world_w, self.world_h)
         self.p2.update(dt, keys, self.map.obstacles, self.world_w, self.world_h)
+
+        # hardcore systems update
+        if self.poison:
+            self.poison.update(dt, [self.p1, self.p2])
+        if self.mines:
+            self.mines.update(dt, [self.p1, self.p2])
 
         # bullets
         for b in self.bullets[:]:
@@ -1248,6 +1292,14 @@ class PlayScene(Scene):
             if self.portal_sys is not None:
                 self.portal_sys.draw(view_surf, shift_pos)
 
+            # mines (draw under players/bullets 都可以，你想更明顯就放 players 前面)
+            if self.mines:
+                self.mines.draw(view_surf, shift_pos)
+
+            # mines explosion fx
+            if self.mines:
+                self.mines.draw_fx(view_surf, shift_pos)
+
             # explosions (shockwave + core)
             for e in self.explosions:
                 r = int(e.radius())
@@ -1292,6 +1344,11 @@ class PlayScene(Scene):
             for pl in (self.p1, self.p2):
                 # players（成人形狀）
                 draw_human(pl)
+
+            # poison zone overlay should be late (so it darkens outside)
+            if self.poison:
+                self.poison.draw(view_surf, shift_rect)
+
 
         left_view = pygame.Surface((VIEW_W, VIEW_H))
         right_view = pygame.Surface((VIEW_W, VIEW_H))
