@@ -546,10 +546,48 @@ class PlayScene(Scene):
                 border_radius=14,
             )
 
-            # obstacles
+            # obstacles (磚塊風格)
             for o in self.map.obstacles:
-                pygame.draw.rect(view_surf, OBSTACLE_COLOR, shift_rect(o), border_radius=10)
+                r = shift_rect(o)
+                
+                # 1. 畫出障礙物底色（磚縫/水泥的顏色）
+                grout_color = (40, 40, 45) # 深灰色磚縫
+                pygame.draw.rect(view_surf, grout_color, r, border_radius=4)
+                
+                # 2. 定義磚塊大小
+                brick_w = 20  # 磚塊寬度
+                brick_h = 10  # 磚塊高度
+                
+                # 3. 遍歷矩形區域畫出每一塊小磚頭
+                for row_y in range(r.top, r.bottom, brick_h):
+                    # 計算這一行是否需要偏移（交錯排列效果）
+                    # 使用 row_y 相對於 r.top 的索引來判斷奇偶行
+                    is_offset = ((row_y - r.top) // brick_h) % 2 == 1
+                    start_x = r.left - (brick_w // 2 if is_offset else 0)
+                    
+                    for col_x in range(start_x, r.right, brick_w):
+                        # 計算單個磚塊的矩形
+                        b_rect = pygame.Rect(col_x + 1, row_y + 1, brick_w - 2, brick_h - 2)
+                        
+                        # 確保磚塊不超出障礙物邊界
+                        clipped_rect = b_rect.clip(r)
+                        
+                        if clipped_rect.width > 0 and clipped_rect.height > 0:
+                            # 磚塊主色 (根據原本的 OBSTACLE_COLOR 做一點隨機或明暗變化)
+                            pygame.draw.rect(view_surf, OBSTACLE_COLOR, clipped_rect, border_radius=2)
+                            
+                            # 加上磚塊的高光（左上角），增加立體感
+                            highlight_col = (min(255, OBSTACLE_COLOR[0]+30), 
+                                             min(255, OBSTACLE_COLOR[1]+30), 
+                                             min(255, OBSTACLE_COLOR[2]+30))
+                            pygame.draw.line(view_surf, highlight_col, 
+                                             clipped_rect.topleft, (clipped_rect.right, clipped_rect.top), 1)
+                            pygame.draw.line(view_surf, highlight_col, 
+                                             clipped_rect.topleft, (clipped_rect.left, clipped_rect.bottom), 1)
 
+                # 4. 最後加上一層外框，讓整體更紮實
+                pygame.draw.rect(view_surf, (20, 20, 25), r, width=2, border_radius=4)
+            
             # grenades
             for g in self.grenades:
                 pygame.draw.circle(view_surf, (220, 220, 120), shift_pos(g.pos), 7)
