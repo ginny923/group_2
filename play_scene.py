@@ -465,92 +465,158 @@ class PlayScene(Scene):
             def shift_pos(p: pygame.Vector2):
                 return (int(p.x - cam_off.x), int(p.y - cam_off.y))
             
-
-            def draw_human(pl: Player):
-                # 人的中心（世界座標 -> 視窗座標）
-                cx, cy = shift_pos(pl.pos)
-
-                # 尺寸可以依你的 PLAYER_SIZE 調整
-                body_h = 26
-                body_w = 18
-                head_r = 9
-                leg_len = 14
-                arm_len = 12
-
-                # 讓整個人隨 facing 左右鏡像
-                fx = 1 if pl.facing.x >= 0 else -1
-
-                # 顏色（用玩家顏色）
-                col = pl.color
-                outline = (20, 20, 25)
-
-                # 頭
-                pygame.draw.circle(view_surf, col, (cx, cy - body_h//2 - head_r + 2), head_r)
-                pygame.draw.circle(view_surf, outline, (cx, cy - body_h//2 - head_r + 2), head_r, 2)
-
-                # 身體（圓角矩形）
-                body_rect = pygame.Rect(cx - body_w//2, cy - body_h//2, body_w, body_h)
-                pygame.draw.rect(view_surf, col, body_rect, border_radius=8)
-                pygame.draw.rect(view_surf, outline, body_rect, width=2, border_radius=8)
-
-                # 手（左右）
-                shoulder_y = cy - body_h//2 + 8
-                left_hand = (cx - body_w//2, shoulder_y)
-                right_hand = (cx + body_w//2, shoulder_y)
-
-                # 前手（朝 facing 方向那隻）
-                front_hand_end = (cx + fx * (body_w//2 + arm_len), shoulder_y + 2)
-                back_hand_end  = (cx - fx * (body_w//2 + arm_len - 4), shoulder_y + 6)
-
-                pygame.draw.line(view_surf, col, left_hand, back_hand_end, 5)
-                pygame.draw.line(view_surf, col, right_hand, front_hand_end, 5)
-
-                # ===== 槍：畫在前手末端（跟著 facing）=====
-                gun_color = (30, 30, 35)
-                gun_outline = (220, 220, 235)
-
-                gx, gy = front_hand_end  # 槍起點（前手末端）
-                wpn = pl.weapon.name
-
-                def rect_facing(x, y, w, h, fx):
+            def rect_facing(x, y, w, h, fx):
                     """fx=1 面右: 從x往右畫；fx=-1 面左: 從x往左畫，但Rect寬度仍為正"""
                     if fx >= 0:
                         return pygame.Rect(x, y, w, h)
                     else:
                         return pygame.Rect(x - w, y, w, h)
 
+            def draw_human(pl: Player):
+                cx, cy = shift_pos(pl.pos)
+                fx = 1 if pl.facing.x >= 0 else -1
+                
+                # === [修改] 顏色定義：讓 P1/P2 有區別 ===
+                armor_col = (240, 240, 245)
+                
+                visor_col = (max(0, pl.color[0]-60), max(0, pl.color[1]-60), max(0, pl.color[2]-60))
+                
+                outline = (30, 30, 40)
+                detail_col = (180, 185, 200)
+                body_h, body_w = 26, 22
+                head_r, leg_len = 12, 14
+
+                # 1. 背包與天線 (背包顏色改用玩家色 [新增])
+                tank_rect = rect_facing(cx - fx * 13, cy - 8, 10, 22, fx)
+                pygame.draw.rect(view_surf, pl.color, tank_rect, border_radius=3)
+                pygame.draw.rect(view_surf, outline, tank_rect, width=2, border_radius=3)
+                ant_x = cx - fx * 10
+                pygame.draw.line(view_surf, outline, (ant_x, cy - 5), (ant_x, cy - 35), 2)
+
+                # 2. 身體 (不變)
+                body_rect = pygame.Rect(cx - body_w//2, cy - body_h//2, body_w, body_h)
+                pygame.draw.rect(view_surf, armor_col, body_rect, border_radius=6)
+                pygame.draw.rect(view_surf, outline, body_rect, width=2, border_radius=6)
+                panel_rect = rect_facing(cx - fx * 4, cy - 2, 8, 6, fx)
+                pygame.draw.rect(view_surf, detail_col, panel_rect, border_radius=2)
+
+                # 3. 頭部與面罩 (不變)
+                head_pos = (cx, cy - body_h//2 - 6)
+                pygame.draw.circle(view_surf, armor_col, head_pos, head_r)
+                pygame.draw.circle(view_surf, outline, head_pos, head_r, 2)
+                v_w, v_h = 14, 10
+                visor_rect = rect_facing(cx + fx * 1, head_pos[1] - v_h//2, v_w, v_h, fx)
+                pygame.draw.rect(view_surf, visor_col, visor_rect, border_radius=5)
+                # === [修改] 將反光點改為可愛哭哭臉 ===
+                # 哭哭眼睛 (兩條向下斜的線 \ / )
+                eye_y = visor_rect.centery - 2
+                # 左眼
+                pygame.draw.line(view_surf, (255, 255, 255), 
+                                 (visor_rect.centerx - 3, eye_y - 1), 
+                                 (visor_rect.centerx - 1, eye_y + 1), 1)
+                # 右眼
+                pygame.draw.line(view_surf, (255, 255, 255), 
+                                 (visor_rect.centerx + 1, eye_y + 1), 
+                                 (visor_rect.centerx + 3, eye_y - 1), 1)
+                
+                # 委屈的小嘴巴 (一個扁平的 v)
+                mouth_y = visor_rect.centery + 2
+                pygame.draw.line(view_surf, (255, 255, 255), 
+                                 (visor_rect.centerx - 1, mouth_y), 
+                                 (visor_rect.centerx, mouth_y + 1), 1)
+                pygame.draw.line(view_surf, (255, 255, 255), 
+                                 (visor_rect.centerx, mouth_y + 1), 
+                                 (visor_rect.centerx + 1, mouth_y), 1)
+                # 3. [新增] 血量低於 30% 時，眼淚流到地板 (不變紅)
+                if pl.hp / pl.max_hp < 0.3:
+                    tear_col = (150, 220, 255) # 淺藍色淚水
+                    floor_y = cy + 20          # 淚水流到的地板高度
+                    
+                    # 左眼淚痕 (從眼睛位置一直畫到地板)
+                    pygame.draw.line(view_surf, tear_col, (visor_rect.centerx - 3, eye_y + 1), (visor_rect.centerx - 3, floor_y), 1)
+                    # 右眼淚痕 (從眼睛位置一直畫到地板)
+                    pygame.draw.line(view_surf, tear_col, (visor_rect.centerx + 3, eye_y + 1), (visor_rect.centerx + 3, floor_y), 1)
+                    
+                    # 在地板處畫兩個小水窪
+                    pygame.draw.ellipse(view_surf, tear_col, (visor_rect.centerx - 5, floor_y - 1, 4, 2))
+                    pygame.draw.ellipse(view_surf, tear_col, (visor_rect.centerx + 1, floor_y - 1, 4, 2))
+                
+
+                # === [修改後] 4. 手與武器 ===
+                shoulder_y = cy - body_h//2 + 8
+                # gx, gy 是槍的起點，也是手的末端
+                gx = cx + (fx * (body_w//2 + 10))
+                gy = shoulder_y + 2
+                
+                # --- 新增：畫手臂 (連結身體肩膀與槍枝) ---
+                # 這樣手才會出現！使用粗線條模擬像素手臂
+                pygame.draw.line(view_surf, armor_col, (cx, shoulder_y), (gx, gy), 6)
+                pygame.draw.line(view_surf, outline, (cx, shoulder_y), (gx, gy), 2)
+
+                wpn = pl.weapon.name
+                g_col, g_out = (30, 30, 35), (220, 220, 235)
+            # 定義未來感配色
+                g_col = (40, 42, 50)      # 深灰色槍身
+                g_out = (80, 85, 100)     # 槍身輪廓
+                glow_col = (0, 255, 255)  # 未來感青色發光條 (能量源)
+
                 if wpn == "Pistol":
-                    gun_rect = rect_facing(gx, gy - 3, 14, 6, fx)
-                    pygame.draw.rect(view_surf, gun_color, gun_rect)
-                    pygame.draw.rect(view_surf, gun_outline, gun_rect, 1)
+                    # --- 未來能量手槍：短小但有厚重的能量核心 ---
+                    # 主槍身
+                    gr = pygame.Rect(gx if fx > 0 else gx - 16, gy - 4, 16, 8)
+                    pygame.draw.rect(view_surf, g_col, gr, border_radius=2)
+                    pygame.draw.rect(view_surf, g_out, gr, 1, border_radius=2)
+                    # 能量發光槽 (側邊的一條細線)
+                    gl = pygame.Rect(gx + (fx*4) if fx > 0 else gx - 12, gy - 1, 8, 2)
+                    pygame.draw.rect(view_surf, glow_col, gl)
 
                 elif wpn == "Rifle":
-                    barrel = rect_facing(gx, gy - 3, 26, 6, fx)
-                    stock  = rect_facing(gx - fx * 6, gy - 2, 8, 8, fx)  # 槍托靠近身體
-                    pygame.draw.rect(view_surf, gun_color, barrel)
-                    pygame.draw.rect(view_surf, gun_color, stock)
-                    pygame.draw.rect(view_surf, gun_outline, barrel, 1)
-                    pygame.draw.rect(view_surf, gun_outline, stock, 1)
+                    # --- 未來電磁步槍：長管、分段式設計 ---
+                    # 前段槍管 (較細)
+                    bar = pygame.Rect(gx if fx > 0 else gx - 30, gy - 2, 30, 4)
+                    # 後段槍機 (較厚)
+                    body = pygame.Rect(gx if fx > 0 else gx - 12, gy - 5, 12, 9)
+                    # 槍托 (斜向或梯形感)
+                    st = pygame.Rect((gx - fx * 8) if fx > 0 else (gx - fx * 8 - 10), gy - 3, 10, 10)
+                    
+                    pygame.draw.rect(view_surf, g_col, bar); pygame.draw.rect(view_surf, g_col, body)
+                    pygame.draw.rect(view_surf, g_col, st, border_bottom_left_radius=4)
+                    # 貫穿槍身的電磁發光線
+                    line_x = gx if fx > 0 else gx - 28
+                    pygame.draw.line(view_surf, glow_col, (line_x, gy), (line_x + (fx*25 if fx > 0 else 25), gy), 1)
+                    # 輪廓
+                    pygame.draw.rect(view_surf, g_out, bar, 1); pygame.draw.rect(view_surf, g_out, body, 1)
 
                 elif wpn == "Shotgun":
-                    barrel = rect_facing(gx, gy - 3, 22, 6, fx)
-                    muzzle = rect_facing(gx + fx * 18, gy - 4, 6, 8, fx)  # 前端加粗
-                    pygame.draw.rect(view_surf, gun_color, barrel)
-                    pygame.draw.rect(view_surf, gun_color, muzzle)
-                    pygame.draw.rect(view_surf, gun_outline, barrel, 1)
-                    pygame.draw.rect(view_surf, gun_outline, muzzle, 1)
+                    # --- 未來重型霰彈槍：寬大槍口、帶有散熱片感 ---
+                    # 厚重的槍身
+                    bar = pygame.Rect(gx if fx > 0 else gx - 24, gy - 5, 24, 10)
+                    # 槍口加寬處理 (散熱器)
+                    muz = pygame.Rect((gx + fx * 16) if fx > 0 else (gx + fx * 16 - 8), gy - 7, 8, 14)
+                    
+                    pygame.draw.rect(view_surf, g_col, bar, border_radius=1)
+                    pygame.draw.rect(view_surf, (50, 55, 70), muz) # 槍口用不同深灰色
+                    # 側面三個能量指示燈 (點點)
+                    for i in range(3):
+                        dot_x = gx + fx*(4 + i*4) if fx > 0 else gx - (6 + i*4)
+                        pygame.draw.circle(view_surf, glow_col, (dot_x, gy), 1)
+                    # 輪廓
+                    pygame.draw.rect(view_surf, g_out, bar, 1); pygame.draw.rect(view_surf, g_out, muz, 1)
 
-                # 腳
+                # === [修改] 5. 腳部：加入走路擺動動畫 [新增] ===
+                import math
+                # 使用 pygame.time.get_ticks() 根據時間產生波動
+                # 只有在速度不為 0 時才擺動 (或簡單點讓它一直動也行)
+                walk_swing = math.sin(pygame.time.get_ticks() * 0.015) * 6
+                
                 hip_y = cy + body_h//2 - 2
-                left_leg_start = (cx - 6, hip_y)
-                right_leg_start = (cx + 6, hip_y)
+                # 左腳
+                pygame.draw.line(view_surf, armor_col, (cx - 7, hip_y), (cx - 9, hip_y + leg_len + walk_swing), 8)
+                pygame.draw.line(view_surf, outline, (cx - 7, hip_y), (cx - 9, hip_y + leg_len + walk_swing), 2)
+                # 右腳 (擺動方向相反)
+                pygame.draw.line(view_surf, armor_col, (cx + 7, hip_y), (cx + 9, hip_y + leg_len - walk_swing), 8)
+                pygame.draw.line(view_surf, outline, (cx + 7, hip_y), (cx + 9, hip_y + leg_len - walk_swing), 2)
 
-                pygame.draw.line(view_surf, col, left_leg_start, (cx - 8, hip_y + leg_len), 6)
-                pygame.draw.line(view_surf, col, right_leg_start, (cx + 8, hip_y + leg_len), 6)
-
-                # 眼睛/方向點（用 facing）
-                eye = (cx + fx * 6, cy - body_h//2 - head_r + 2)
-                pygame.draw.circle(view_surf, (245, 245, 245), eye, 3)
             # arena border
             arena_rect = pygame.Rect(
                 ARENA_MARGIN, ARENA_MARGIN,
