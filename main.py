@@ -6,6 +6,7 @@ from typing import List, Optional, Tuple
 from leaderboard import LeaderboardManager, LeaderboardScene
 from classic_features import AppleSystem, PortalPairSystem
 from hardcore_features import PoisonZoneSystem, MineSystem
+from chaos_features import BarrelSystem, BreakableFloorSystem, FogOfWarSystem
 
 import pygame
 
@@ -891,6 +892,36 @@ class PlayScene(Scene):
             keymap=p2_keys,
         )
 
+        # 產生出生區 avoid（避免桶/地板生成在出生點）
+        spawn_left  = pygame.Rect(ARENA_MARGIN, self.world_h // 2 - 140, 260, 280)
+        spawn_right = pygame.Rect(self.world_w - ARENA_MARGIN - 260, self.world_h // 2 - 140, 260, 280)
+        avoid = [spawn_left, spawn_right]
+
+
+        # ===== Chaos features =====
+        self.barrels = None
+        self.floor = None
+        self.fog = None
+
+        if self.game.mode.key == "chaos":
+            self.barrels = BarrelSystem(
+                world_w=self.world_w, world_h=self.world_h,
+                arena_margin=ARENA_MARGIN,
+                obstacles=self.map.obstacles,
+                barrel_count=6
+            )
+            self.barrels.spawn_initial(avoid_rects=avoid)
+
+            self.floor = BreakableFloorSystem(
+                world_w=self.world_w, world_h=self.world_h,
+                arena_margin=ARENA_MARGIN,
+                obstacles=self.map.obstacles,
+                tile_count=10
+            )
+            self.floor.spawn_initial(avoid_rects=avoid)
+
+            self.fog = FogOfWarSystem(radius=220, darkness=210, feather=24)
+
         # -------------------------
         # ✅ Hardcore features: Poison + Mines
         # -------------------------
@@ -934,20 +965,20 @@ class PlayScene(Scene):
 
         if self.game.mode.key == "classic":
             # 避免生成在出生區附近
-            spawn_left = pygame.Rect(ARENA_MARGIN, HEIGHT // 2 - 120, 220, 240)
-            spawn_right = pygame.Rect(WIDTH - ARENA_MARGIN - 220, HEIGHT // 2 - 120, 220, 240)
+            spawn_left  = pygame.Rect(ARENA_MARGIN, self.world_h // 2 - 120, 220, 240)
+            spawn_right = pygame.Rect(self.world_w - ARENA_MARGIN - 220, self.world_h // 2 - 120, 220, 240)
             avoid = [spawn_left, spawn_right]
 
             self.apple_sys = AppleSystem(
-                world_w=WIDTH, world_h=HEIGHT, arena_margin=ARENA_MARGIN,
+                world_w=self.world_w, world_h=self.world_h, arena_margin=ARENA_MARGIN,
                 obstacles=self.map.obstacles,
-                max_apples=3,      # ✅ 最多 3 顆
-                heal_amount=15,    # 回血量
+                max_apples=3,
+                heal_amount=15,
                 spawn_cd_range=(6.0, 10.0),
             )
 
             self.portal_sys = PortalPairSystem(
-                world_w=WIDTH, world_h=HEIGHT, arena_margin=ARENA_MARGIN,
+                world_w=self.world_w, world_h=self.world_h, arena_margin=ARENA_MARGIN,
                 obstacles=self.map.obstacles,
                 portal_radius=22,
                 cooldown=1.0,
@@ -1031,49 +1062,106 @@ class PlayScene(Scene):
             return
 
         keys = pygame.key.get_pressed()
-        self.p1.update(dt, keys, self.map.obstacles, self.world_w, self.world_h)
-        self.p2.update(dt, keys, self.map.obstacles, self.world_w, self.world_h)
 
-        # hardcore systems update
-        if self.poison:
-            self.poison.update(dt, [self.p1, self.p2])
-        if self.mines:
-            self.mines.update(dt, [self.p1, self.p2])
+        # 取出可選系統（避免某模式沒有這些屬性就噴錯）
+        barrels = getattr(self, "barrels", None)
+        floor   = getattr(self, "floor", None)
+        poison  = getattr(self, "poison", None)
+        mines   = getattr(self, "mines", None)
 
-        # bullets
+        # =========================================
+        # 1) 組合「障礙物清單」：地圖 + 桶子 + 坑(pit)
+        # =========================================
+        base_obstacles = self.map.obstacles[:]  # 原本地圖掩體
+        if barrels:
+            base_obstacles += barrels.get_obstacles()   # 桶子也擋路
+        if floor:
+            base_obstacles += floor.get_blockers()      # pit 不能走 → 也當障礙物
+
+        # =========================================
+        # 2) 玩家更新（泥地減速要先套用再更新）
+        # =========================================
+        for pl in (self.p1, self.p2):
+            slow = floor.speed_factor_for(pl.body_hitbox()) if floor else 1.0
+            old_speed = pl.speed
+            pl.speed = old_speed * slow
+
+            # ✅ 玩家碰撞用 base_obstacles（含桶子/坑）
+            pl.update(dt, keys, base_obstacles, self.world_w, self.world_h)
+
+            pl.speed = old_speed  # update 完一定要還原
+
+        # =========================================
+        # 3) 模式系統 update
+        # =========================================
+        # hardcore systems
+        if poison:
+            poison.update(dt, [self.p1, self.p2])
+        if mines:
+            mines.update(dt, [self.p1, self.p2])
+
+        # classic systems
+        if getattr(self, "apple_sys", None) is not None:
+            spawn_left  = pygame.Rect(ARENA_MARGIN, self.world_h // 2 - 120, 220, 240)
+            spawn_right = pygame.Rect(self.world_w - ARENA_MARGIN - 220, self.world_h // 2 - 120, 220, 240)
+            self.apple_sys.update(dt, [self.p1, self.p2], avoid_rects=[spawn_left, spawn_right])
+
+        if getattr(self, "portal_sys", None) is not None:
+            self.portal_sys.update(dt, [self.p1, self.p2])
+
+        # chaos systems（桶子的 fx 可能需要 update）
+        if barrels:
+            barrels.update(dt)
+
+        # =========================================
+        # 4) bullets：要先判斷 floor / barrel，再判斷 obstacles
+        # =========================================
         for b in self.bullets[:]:
             b.update(dt)
 
             # remove out of arena
-            if (b.rect.right < 0 or b.rect.left > self.world_w or b.rect.bottom < 0 or b.rect.top > self.world_h):
+            if (b.rect.right < 0 or b.rect.left > self.world_w or
+                b.rect.bottom < 0 or b.rect.top > self.world_h):
                 self.bullets.remove(b)
                 continue
 
-            # obstacle hit
-            if rects_overlap_any(b.rect, self.map.obstacles):
+            # (A) 打碎地板
+            if floor and floor.handle_bullet_hit(b.rect):
                 self.bullets.remove(b)
                 continue
 
-            # player hit (no friendly-fire)
+            # (B) 打到爆炸桶
+            if barrels and barrels.handle_bullet_hit(b.rect, [self.p1, self.p2]):
+                self.bullets.remove(b)
+                self.game.sound.play("boom", volume=0.30)
+                continue
+
+            # (C) obstacle hit（用 base_obstacles，不要只用 map.obstacles）
+            if rects_overlap_any(b.rect, base_obstacles):
+                self.bullets.remove(b)
+                continue
+
+            # (D) player hit (no friendly-fire)
             if b.owner_id == 1 and b.rect.colliderect(self.p2.body_hitbox()):
                 self.p2.take_damage(b.damage)
                 self.bullets.remove(b)
                 self.game.sound.play("hit", volume=0.25)
                 continue
+
             if b.owner_id == 2 and b.rect.colliderect(self.p1.body_hitbox()):
                 self.p1.take_damage(b.damage)
                 self.bullets.remove(b)
                 self.game.sound.play("hit", volume=0.25)
                 continue
 
-        # grenades (作法B：碰到人就立刻爆)
+        # =========================================
+        # 5) grenades：也用 base_obstacles（含桶子/坑）
+        # =========================================
         for g in self.grenades[:]:
-            g.update(dt, self.map.obstacles, self.world_w, self.world_h)
+            g.update(dt, base_obstacles, self.world_w, self.world_h)
 
-            # 手榴彈本體 hitbox（跟你 Grenade.update 用的一樣大小）
             grenade_rect = pygame.Rect(int(g.pos.x - 7), int(g.pos.y - 7), 14, 14)
 
-            # ✅ 撞到敵人就爆（避免炸到自己：owner_id 判斷）
             hit_p1 = (g.owner_id != 1 and grenade_rect.colliderect(self.p1.body_hitbox()))
             hit_p2 = (g.owner_id != 2 and grenade_rect.colliderect(self.p2.body_hitbox()))
 
@@ -1082,11 +1170,13 @@ class PlayScene(Scene):
                 self.grenades.remove(g)
                 continue
 
-            # fuse 到了也爆
             if g.fuse <= 0:
                 self._explode(g)
                 self.grenades.remove(g)
 
+        # =========================================
+        # 6) winner 判定
+        # =========================================
         if not self.p1.alive():
             self.winner = self.p2.name
             self.game.leaderboard.record_win(self.game.mode.key, self.winner)
@@ -1096,16 +1186,9 @@ class PlayScene(Scene):
             self.game.leaderboard.record_win(self.game.mode.key, self.winner)
             self.win_timer = 0.0
 
-        # ===== Classic features update =====
-        if self.apple_sys is not None:
-            spawn_left = pygame.Rect(ARENA_MARGIN, HEIGHT // 2 - 120, 220, 240)
-            spawn_right = pygame.Rect(WIDTH - ARENA_MARGIN - 220, HEIGHT // 2 - 120, 220, 240)
-            self.apple_sys.update(dt, [self.p1, self.p2], avoid_rects=[spawn_left, spawn_right])
-
-        if self.portal_sys is not None:
-            self.portal_sys.update(dt, [self.p1, self.p2])
-
-        # explosions
+        # =========================================
+        # 7) explosions
+        # =========================================
         for e in self.explosions[:]:
             e.update(dt)
             if e.done():
@@ -1132,6 +1215,12 @@ class PlayScene(Scene):
 
         apply(self.p1)
         apply(self.p2)
+
+        if self.floor:
+            self.floor.on_explosion(g.pos, self.mode_grenade_radius)
+
+        if self.barrels:
+            self.barrels.explode_at(g.pos, [self.p1, self.p2])  # 爆炸可以引爆附近桶
 
     def _draw_hp_bar(self, screen, x, y, w, h, hp, max_hp, color, label):
         pygame.draw.rect(screen, (60, 60, 70), (x, y, w, h), border_radius=8)
@@ -1166,7 +1255,7 @@ class PlayScene(Scene):
             off_y = clamp(off_y, 0, self.world_h - VIEW_H)
             return pygame.Vector2(off_x, off_y)
 
-        def draw_world(view_surf: pygame.Surface, cam_off: pygame.Vector2) -> None:
+        def draw_world(view_surf: pygame.Surface, cam_off: pygame.Vector2, focus_player) -> None:
             view_surf.fill(BG_COLOR)
 
             def shift_rect(r: pygame.Rect) -> pygame.Rect:
@@ -1174,6 +1263,7 @@ class PlayScene(Scene):
 
             def shift_pos(p: pygame.Vector2):
                 return (int(p.x - cam_off.x), int(p.y - cam_off.y))
+            
 
             def draw_human(pl: Player):
                 # 人的中心（世界座標 -> 視窗座標）
@@ -1340,6 +1430,15 @@ class PlayScene(Scene):
                 else:
                     pygame.draw.rect(view_surf, col, sr, border_radius=4)
 
+            # breakable floor
+            if self.floor:
+                self.floor.draw(view_surf, shift_rect)
+
+            # barrels + fx
+            if self.barrels:
+                self.barrels.draw(view_surf, shift_rect)
+                self.barrels.draw_fx(view_surf, shift_pos)
+
             # players（直接畫 shifted）
             for pl in (self.p1, self.p2):
                 # players（成人形狀）
@@ -1349,6 +1448,10 @@ class PlayScene(Scene):
             if self.poison:
                 self.poison.draw(view_surf, shift_rect)
 
+            # 全部畫完後最後套 fog
+            if self.fog:
+                fx, fy = shift_pos(focus_player.pos)
+                self.fog.apply(view_surf, (fx, fy))
 
         left_view = pygame.Surface((VIEW_W, VIEW_H))
         right_view = pygame.Surface((VIEW_W, VIEW_H))
@@ -1356,8 +1459,8 @@ class PlayScene(Scene):
         cam1 = camera_offset(self.p1.pos)
         cam2 = camera_offset(self.p2.pos)
 
-        draw_world(left_view, cam1)
-        draw_world(right_view, cam2)
+        draw_world(left_view, cam1, self.p1)
+        draw_world(right_view, cam2, self.p2)
 
         # 把左右畫面貼到主螢幕
         screen.fill(BG_COLOR)
