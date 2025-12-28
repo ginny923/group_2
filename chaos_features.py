@@ -262,6 +262,7 @@ class BreakableFloorSystem:
         tile_count: int = 10,
         size_range: Tuple[Tuple[int,int], Tuple[int,int]] = ((70, 44), (130, 70)),
         mud_slow: float = 0.72,
+        initial_mud_ratio: float = 0.30,   # ✅ 新增：開局就有多少比例是泥巴
         seed: Optional[int] = None,
     ) -> None:
         self.world_w = world_w
@@ -272,6 +273,7 @@ class BreakableFloorSystem:
         self.tile_count = tile_count
         self.size_range = size_range
         self.mud_slow = mud_slow
+        self.initial_mud_ratio = initial_mud_ratio  # ✅ 新增
 
         self.rng = random.Random(seed)
         self.tiles: List[FragileTile] = []
@@ -294,9 +296,16 @@ class BreakableFloorSystem:
             if r is None:
                 continue
 
-            kind = "mud" if (self.rng.random() < 0.45) else "pit"
-            self.tiles.append(FragileTile(rect=r, broken_kind=kind, state="intact"))
+            # ✅ 先決定「開局就泥巴」(可走 + 緩速)
+            if self.rng.random() < self.initial_mud_ratio:
+                self.tiles.append(FragileTile(rect=r, broken_kind="mud", state="mud"))
+            else:
+                # 其他維持你原本：開局是 intact，之後被打碎才變 mud/pit
+                kind = "mud" if (self.rng.random() < 0.45) else "pit"
+                self.tiles.append(FragileTile(rect=r, broken_kind=kind, state="intact"))
+
             placed.append(r)
+
 
     def get_blockers(self) -> List[pygame.Rect]:
         # pit = 不能走
