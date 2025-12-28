@@ -647,9 +647,10 @@ class MenuScene(Scene):
         start_y = 250
         gap = 18
 
+        offset_y = 20  # ✅ 想下移多少就調這個（例如 8~20）
         for i, it in enumerate(self.items):
             x = WIDTH // 2 - box_w // 2
-            y = start_y + i * (box_h + gap)
+            y = start_y + offset_y + i * (box_h + gap)
 
             selected = (i == self.selection)
 
@@ -672,7 +673,7 @@ class MenuScene(Scene):
             text = self.font.render(it, True, (0, 0, 0))
             shift = 14 if selected else 0
             tx = x + (box_w - text.get_width()) // 2 + shift
-            ty = y + (box_h - text.get_height()) // 2 + 6
+            ty = y + (box_h - text.get_height()) // 2 
             screen.blit(text, (tx, ty))
 
 class NameInputScene(Scene):
