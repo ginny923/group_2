@@ -333,7 +333,6 @@ class MineSystem:
             p2 = (x - 2 - wob, y - r - cap_h - wick_len)
             pygame.draw.lines(surf, (160, 120, 60), False, [p0, p1, p2], 3)
             pygame.draw.lines(surf, (30, 30, 35), False, [p0, p1, p2], 1)
-
             # 4) 火花（閃爍的小點點）
             spark_on = int((t * 12.0) % 2) == 0
             if spark_on:
