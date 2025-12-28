@@ -858,7 +858,6 @@ class ModeSelectScene(Scene):
             "hardcore": "Lower HP, more obstacles, bigger grenade radius (hard).",
             "chaos":    "More HP, many obstacles, faster grenades, infinite ammo!",
         }
-
         desc_font = pygame.font.SysFont("Arial", 18)
         start_y = 190
         block_h = 90   # 每個模式佔 90px，高度夠就不會擠在一起
