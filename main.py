@@ -846,6 +846,9 @@ class PlayScene(Scene):
         self.mode_grenade_cd = mode.grenade_cd
         self.mode_grenade_speed = mode.grenade_speed
 
+        self.win_timer = 0.0
+        self.win_delay = 1.2   # 勝利畫面停 1.2 秒後進 leaderboard
+
         # map
         self.map = ArenaMap(seed=random.randint(0, 10**9), obstacle_count=self.mode_obstacles)
         self.map.generate()
@@ -926,7 +929,23 @@ class PlayScene(Scene):
                 if event.key == pygame.K_KP3: self.p2.set_weapon(2)
 
     def update(self, dt: float) -> None:
+        # winner 出現後：停留一下，再去 leaderboard
         if self.winner is not None:
+            self.win_timer += dt
+            if self.win_timer >= self.win_delay:
+                self.game.set_scene(
+                    LeaderboardScene(
+                        game=self.game,
+                        lb=self.game.leaderboard,
+                        mode_key=self.game.mode.key,
+                        mode_title=self.game.mode.title,
+                        winner_name=self.winner,
+                        width=WIDTH,
+                        height=HEIGHT,
+                        bg_color=BG_COLOR,
+                        ui_color=UI_COLOR,
+                    )
+                )
             return
 
         keys = pygame.key.get_pressed()
@@ -982,10 +1001,13 @@ class PlayScene(Scene):
 
         if not self.p1.alive():
             self.winner = self.p2.name
+            self.game.leaderboard.record_win(self.game.mode.key, self.winner)
+            self.win_timer = 0.0
         elif not self.p2.alive():
             self.winner = self.p1.name
+            self.game.leaderboard.record_win(self.game.mode.key, self.winner)
+            self.win_timer = 0.0
 
-        
         # explosions
         for e in self.explosions[:]:
             e.update(dt)
