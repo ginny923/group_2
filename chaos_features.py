@@ -329,7 +329,6 @@ class BreakableFloorSystem:
             if (c - pos).length() <= radius + 20:
                 t.state = "mud" if t.broken_kind == "mud" else "pit"
                 broke_any = True
-
         # ✅ 爆炸一次只播一次，避免同時碎很多塊狂叫
         if broke_any and sound is not None:
             sound.play("wood_bomb", volume=1.5)
