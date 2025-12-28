@@ -1431,7 +1431,6 @@ class PlayScene(Scene):
             # breakable floor
             if self.floor:
                 self.floor.draw(view_surf, shift_rect)
-
             # barrels + fx
             if self.barrels:
                 self.barrels.draw(view_surf, shift_rect)
