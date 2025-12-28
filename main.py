@@ -1456,7 +1456,6 @@ class PlayScene(Scene):
         right_view = pygame.Surface((VIEW_W, VIEW_H))
         cam1 = camera_offset(self.p1.pos)
         cam2 = camera_offset(self.p2.pos)
-
         draw_world(left_view, cam1, self.p1)
         draw_world(right_view, cam2, self.p2)
         # 把左右畫面貼到主螢幕
@@ -1465,7 +1464,6 @@ class PlayScene(Scene):
         screen.blit(right_view, (VIEW_W, 0))
         # 中間分隔線
         pygame.draw.line(screen, (90, 90, 105), (VIEW_W, 0), (VIEW_W, HEIGHT), 2)
-
         # UI（沿用你原本的）
         self._draw_hp_bar(screen, 20, 26, 240, 18,
                         self.p1.hp, self.p1.max_hp, P1_COLOR,
