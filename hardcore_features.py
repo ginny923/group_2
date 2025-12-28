@@ -177,7 +177,7 @@ class Mine:
     radius: int = 13
     arm_delay: float = 0.7  # 出生後 0.7 秒才會觸發（避免一生成就踩到）
     armed: bool = False
-
+    phase: float = 0.0 
 
 @dataclass
 class MineFX:
@@ -250,7 +250,15 @@ class MineSystem:
             )
             if p is None:
                 continue
-            self.mines.append(Mine(pos=p, radius=self.mine_radius, arm_delay=0.7, armed=False))
+            self.mines.append(
+                Mine(
+                    pos=p,
+                    radius=self.mine_radius,
+                    arm_delay=0.7,
+                    armed=False,
+                    phase=self.rng.random() * math.tau,   # ✅ 這裡填入隨機 phase
+                )
+            )
 
     def _explode(self, pos: pygame.Vector2, players: List[object]) -> None:
         # 特效
@@ -266,6 +274,8 @@ class MineSystem:
             pl.take_damage(dmg)
 
     def update(self, dt: float, players: List[object]) -> None:
+        self._t = getattr(self, "_t", 0.0) + dt
+
         # arm 計時
         for m in self.mines:
             if not m.armed:
@@ -291,30 +301,49 @@ class MineSystem:
             if e.done():
                 self.fx.remove(e)
 
-    def draw(self, surf: pygame.Surface, to_view_pos: Callable[[pygame.Vector2], Tuple[int, int]]) -> None:
-        # 地雷本體（帶閃爍）
-        t = pygame.time.get_ticks() / 1000.0
-
+    def draw(self, surf: pygame.Surface, shift_pos):
+        """
+        shift_pos: (world_vec2)->(x,y)
+        """
         for m in self.mines:
-            x, y = to_view_pos(m.pos)
+            x, y = shift_pos(m.pos)
 
-            # 外圈（armed 才亮）
-            if m.armed:
-                pulse = 0.5 + 0.5 * math.sin(t * 6.0)
-                a = int(60 + 90 * pulse)
-                glow_r = m.radius + 10
-                glow = pygame.Surface((glow_r * 2, glow_r * 2), pygame.SRCALPHA)
-                pygame.draw.circle(glow, (255, 90, 90, a), (glow_r, glow_r), glow_r)
-                surf.blit(glow, (x - glow_r, y - glow_r))
-                core_col = (240, 90, 90)
-            else:
-                core_col = (120, 120, 130)
+            # 炸彈大小：用 mine_radius 做基準
+            r = int(self.mine_radius)
 
-            pygame.draw.circle(surf, core_col, (x, y), m.radius)
-            pygame.draw.circle(surf, (20, 20, 25), (x, y), m.radius, 2)
+            # 1) 本體（黑色球）
+            pygame.draw.circle(surf, (25, 25, 30), (x, y), r)
+            pygame.draw.circle(surf, (10, 10, 14), (x, y), r, 2)
 
-            # 中心點
-            pygame.draw.circle(surf, (245, 245, 245), (x, y), 3)
+            # 2) 高光（左上角一點）
+            hl_r = max(2, r // 3)
+            pygame.draw.circle(surf, (70, 70, 85), (x - r//3, y - r//3), hl_r)
+
+            # 3) 火線（上方小短管 + 曲線火線）
+            # 小短管（引信座）
+            cap_w = max(6, r)
+            cap_h = max(4, r // 2)
+            cap = pygame.Rect(x - cap_w//2, y - r - cap_h + 2, cap_w, cap_h)
+            pygame.draw.rect(surf, (55, 55, 65), cap, border_radius=3)
+            pygame.draw.rect(surf, (15, 15, 18), cap, 1, border_radius=3)
+
+            # 火線（簡單用折線模擬彎曲）
+            wick_len = max(10, int(r * 1.1))
+            t = getattr(self, "_t", 0.0)  # 如果你 update 有 self._t += dt，就會動；沒有也沒關係
+            wob = int(2 * math.sin(t * 8.0 + m.phase)) if hasattr(m, "phase") else int(2 * math.sin(t * 8.0))
+            p0 = (x, y - r - cap_h + 2)
+            p1 = (x + 4 + wob, y - r - cap_h - wick_len//2)
+            p2 = (x - 2 - wob, y - r - cap_h - wick_len)
+            pygame.draw.lines(surf, (160, 120, 60), False, [p0, p1, p2], 3)
+            pygame.draw.lines(surf, (30, 30, 35), False, [p0, p1, p2], 1)
+
+            # 4) 火花（閃爍的小點點）
+            spark_on = int((t * 12.0) % 2) == 0
+            if spark_on:
+                sx, sy = p2
+                pygame.draw.circle(surf, (255, 210, 90), (sx, sy), 3)
+                pygame.draw.circle(surf, (255, 140, 80), (sx + 3, sy + 1), 2)
+                pygame.draw.circle(surf, (255, 240, 180), (sx - 2, sy + 2), 2)
 
     def draw_fx(self, surf: pygame.Surface, to_view_pos: Callable[[pygame.Vector2], Tuple[int, int]]) -> None:
         # 爆炸動畫（類似你 Explosion 的 shockwave）
