@@ -470,6 +470,7 @@ def make_default_weapons() -> List[Weapon]:
         bullet_size=(6, 6),
         bullet_kind="rect",
     )
+    
     return [pistol, rifle, shotgun]
 
 # =========================
