@@ -805,7 +805,7 @@ class ModeSelectScene(Scene):
 
             elif event.key == pygame.K_RETURN:
                 key = self.mode_keys[self.selection]   # "classic"/"hardcore"/"chaos"
-                self.game.mode = MODES[key]       # ✅ 存 GameMode 物件
+                self.game.mode = MODES[key]      # ✅ 存 GameMode 物件
                 self.game.set_scene(PlayScene(self.game))
 
     def draw(self, screen: pygame.Surface) -> None:
