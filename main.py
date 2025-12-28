@@ -1428,7 +1428,6 @@ class PlayScene(Scene):
                     pygame.draw.line(view_surf, col, p1, p2, b.thickness)
                 else:
                     pygame.draw.rect(view_surf, col, sr, border_radius=4)
-
             # breakable floor
             if self.floor:
                 self.floor.draw(view_surf, shift_rect)
