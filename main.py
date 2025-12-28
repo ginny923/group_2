@@ -1226,8 +1226,13 @@ class PlayScene(Scene):
         pygame.draw.line(screen, (90, 90, 105), (VIEW_W, 0), (VIEW_W, HEIGHT), 2)
 
         # UI（沿用你原本的）
-        self._draw_hp_bar(screen, 20, 26, 240, 18, self.p1.hp, self.p1.max_hp, P1_COLOR, "P1(藍)")
-        self._draw_hp_bar(screen, VIEW_W + 20, 26, 240, 18, self.p2.hp, self.p2.max_hp, P2_COLOR, "P2(紅)")
+        self._draw_hp_bar(screen, 20, 26, 240, 18,
+                  self.p1.hp, self.p1.max_hp, P1_COLOR,
+                  f"{self.p1.name}(藍)")
+
+        self._draw_hp_bar(screen, VIEW_W + 20, 26, 240, 18,
+                        self.p2.hp, self.p2.max_hp, P2_COLOR,
+                        f"{self.p2.name}(紅)")
 
         self._draw_weapon_ui(screen, 20, 60, self.p1, align_right=False)
         self._draw_weapon_ui(screen, WIDTH - 20, 60, self.p2, align_right=True)
