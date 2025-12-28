@@ -845,7 +845,10 @@ class ModeSelectScene(Scene):
 
 
     def draw(self, screen: pygame.Surface) -> None:
-        screen.fill(BG_COLOR)
+        if getattr(self.game, "mode_bg", None) is not None:
+            screen.blit(self.game.mode_bg, (0, 0))
+        else:
+            screen.fill(BG_COLOR)
 
         title = self.big.render("Select Mode", True, UI_COLOR)
         screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 80))
@@ -906,6 +909,16 @@ class Game:
         except Exception as e:
             print("[menuinput_bg] load failed:", e)
             self.menuinput_bg = None
+
+        
+        # ✅ mode_bg（模式選擇頁）
+        mode_path = os.path.join(base_dir, "mode_bg.png")
+        try:
+            img3 = pygame.image.load(mode_path).convert()  # 沒透明用 convert()
+            self.mode_bg = pygame.transform.smoothscale(img3, (WIDTH, HEIGHT))
+        except Exception as e:
+            print("[mode_bg] load failed:", e)
+            self.mode_bg = None
 
         pygame.display.set_caption("Two Player Shooter (OOP)")
         self.clock = pygame.time.Clock()
