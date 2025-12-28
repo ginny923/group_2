@@ -220,7 +220,7 @@ class Bullet:
     vel: pygame.Vector2
     owner_id: int
     damage: int
-    kind: str = "rect"      # "rect" 或 "line"
+    kind: str = "rect"   # "rect" 或 "line"
     thickness: int = 4   
 
     def update(self, dt: float) -> None:
