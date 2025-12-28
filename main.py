@@ -933,7 +933,6 @@ class PlayScene(Scene):
             elif event.key == pygame.K_2: self.p1.set_weapon(1)
             elif event.key == pygame.K_3: self.p1.set_weapon(2)
 
-
             # P2 actions
             if event.key == pygame.K_SLASH:
                 self.bullets.extend(self.p2.try_shoot(self.game.sound))
@@ -1033,7 +1032,6 @@ class PlayScene(Scene):
             e.update(dt)
             if e.done():
                 self.explosions.remove(e)
-
 
     def _explode(self, g: Grenade) -> None:
         self.game.sound.play("boom", volume=0.35)
@@ -1363,7 +1361,6 @@ class Game:
             self.screen.blit(scaled, (ox, oy))
 
             pygame.display.flip()
-
 
         pygame.quit()
 
