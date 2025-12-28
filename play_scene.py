@@ -437,8 +437,28 @@ class PlayScene(Scene):
             return pygame.Vector2(off_x, off_y)
 
         def draw_world(view_surf: pygame.Surface, cam_off: pygame.Vector2, focus_player) -> None:
-            view_surf.fill(BG_COLOR)
+            # --- 1. 背景層 (深藍底色 + 呼吸燈網格 + 星空) ---
+            view_surf.fill((15, 15, 25))
+            
+            import math, random
+            glow = math.sin(pygame.time.get_ticks() * 0.005) * 25
+            g_val = max(0, min(255, 50 + glow))
+            grid_color = (g_val, g_val, g_val + 20)
 
+            grid_size = 64
+            start_x = -int(cam_off.x % grid_size)
+            start_y = -int(cam_off.y % grid_size)
+            for gx in range(start_x, VIEW_W, grid_size):
+                pygame.draw.line(view_surf, grid_color, (gx, 0), (gx, VIEW_H), 1)
+            for gy in range(start_y, VIEW_H, grid_size):
+                pygame.draw.line(view_surf, grid_color, (0, gy), (VIEW_W, gy), 1)
+
+            random.seed(42)
+            for _ in range(40):
+                rx, ry = random.randint(0, VIEW_W), random.randint(0, VIEW_H)
+                pygame.draw.circle(view_surf, (150, 150, 200), (rx, ry), 1)
+            random.seed()
+            #==========
             def shift_rect(r: pygame.Rect) -> pygame.Rect:
                 return r.move(-int(cam_off.x), -int(cam_off.y))
 
