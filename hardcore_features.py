@@ -49,7 +49,6 @@ def _find_free_point(
         return pygame.Vector2(x, y)
     return None
 
-
 # -------------------------
 # Poison Zone (Shrinking Safe Rect)
 # -------------------------
