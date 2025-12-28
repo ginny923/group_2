@@ -345,7 +345,6 @@ class Weapon:
         self.bullet_kind = bullet_kind
         self.bullet_thickness = bullet_thickness
 
-
         self.mag = mag_size
         self.reserve = reserve
 
