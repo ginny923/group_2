@@ -205,7 +205,6 @@ class ArenaMap:
             # 不要重疊太多（允許稍微靠近）
             if rects_overlap_any(r.inflate(12, 12), self.obstacles):
                 continue
-
             self.obstacles.append(r)
 
     def draw(self, screen: pygame.Surface) -> None:
