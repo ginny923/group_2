@@ -1393,7 +1393,6 @@ class PlayScene(Scene):
             for e in self.explosions:
                 r = int(e.radius())
                 a = e.alpha()
-
                 # 在視窗座標的位置
                 ex, ey = shift_pos(e.pos)
 
