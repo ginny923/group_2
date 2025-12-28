@@ -3,6 +3,8 @@ import random
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
+from leaderboard import LeaderboardManager, LeaderboardScene
+
 import pygame
 
 # =========================
@@ -1258,6 +1260,8 @@ class Game:
         self.clock = pygame.time.Clock()
         self.running = True
 
+        self.leaderboard = LeaderboardManager()
+
         # sound (optional)
         self.sound = SoundManager()
         # 你可以放音檔到同資料夾並改成對應檔名，例如:
@@ -1272,6 +1276,10 @@ class Game:
         self.p1_name = "P1"
         self.p2_name = "P2"
         self.scene: Scene = MenuScene(self)
+
+        # 給 leaderboard scene 用的工廠（避免 leaderboard.py 反過來 import main.py）
+        self.menu_scene_factory = lambda: MenuScene(self)
+        self.play_scene_factory = lambda: PlayScene(self)
 
     def set_scene(self, scene: Scene) -> None:
         self.scene = scene
