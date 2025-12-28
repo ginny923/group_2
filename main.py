@@ -654,9 +654,13 @@ class MenuScene(Scene):
 
             selected = (i == self.selection)
 
-            # 白色圓角方塊（選到的可以稍微變灰）
-            fill = (245, 245, 245) if not selected else (230, 230, 230)
-            pygame.draw.rect(screen, fill, (x, y, box_w, box_h), border_radius=14)
+            # ✅ 半透明白色圓角方塊
+            alpha = 150  # 0~255，越小越透明（可調 110~190）
+            fill = (255, 255, 255, alpha) if not selected else (255, 255, 255, alpha + 20)
+
+            btn = pygame.Surface((box_w, box_h), pygame.SRCALPHA)
+            pygame.draw.rect(btn, fill, (0, 0, box_w, box_h), border_radius=14)
+            screen.blit(btn, (x, y))
 
             # 選到的加黑框
             if selected:
