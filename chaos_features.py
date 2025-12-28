@@ -330,16 +330,51 @@ class BreakableFloorSystem:
                 t.state = "mud" if t.broken_kind == "mud" else "pit"
 
     def draw(self, surf: pygame.Surface, to_view_rect: Callable[[pygame.Rect], pygame.Rect]) -> None:
+        import random
+        import pygame
+
         for t in self.tiles:
             r = to_view_rect(t.rect)
 
             if t.state == "intact":
-                # 脆弱地板：灰藍 + 裂紋
-                pygame.draw.rect(surf, (80, 90, 110), r, border_radius=10)
-                pygame.draw.rect(surf, (20, 20, 25), r, 2, border_radius=10)
-                # 裂紋
-                pygame.draw.line(surf, (160, 170, 190), (r.x+10, r.y+10), (r.right-12, r.bottom-16), 2)
-                pygame.draw.line(surf, (160, 170, 190), (r.x+14, r.centery), (r.right-18, r.y+14), 2)
+                # ===== 木頭地板：木色 + 木紋 + 打叉 =====
+                wood_base = (140, 96, 58)     # 木板底色
+                wood_edge = (60, 38, 20)      # 外框
+                grain_hi  = (165, 118, 74)    # 木紋亮線
+                grain_lo  = (120, 78, 45)     # 木紋暗線
+                x_col     = (25, 18, 12)      # X 的顏色（深色）
+
+                # 1) 木板底 + 外框
+                pygame.draw.rect(surf, wood_base, r, border_radius=10)
+                pygame.draw.rect(surf, wood_edge, r, 2, border_radius=10)
+
+                # 2) 固定 seed：避免每幀木紋亂跳
+                seed = (t.rect.x * 73856093) ^ (t.rect.y * 19349663) ^ (t.rect.w * 83492791) ^ (t.rect.h * 2654435761)
+                rng = random.Random(seed)
+
+                inner = r.inflate(-12, -12)
+                if inner.width > 0 and inner.height > 0:
+                    # 幾條長木紋（水平）
+                    for _ in range(4):
+                        y = rng.randint(inner.top, inner.bottom)
+                        col = grain_hi if rng.random() < 0.5 else grain_lo
+                        pygame.draw.line(surf, col, (inner.left, y), (inner.right, y), 2)
+
+                    # 一些短刮痕
+                    for _ in range(6):
+                        x = rng.randint(inner.left, inner.right)
+                        y = rng.randint(inner.top, inner.bottom)
+                        dx = rng.randint(10, 22)
+                        pygame.draw.line(surf, grain_lo, (x, y), (min(inner.right, x + dx), y), 1)
+
+                # 3) 打叉 X
+                pad = 12
+                a = (r.left + pad,  r.top + pad)
+                b = (r.right - pad, r.bottom - pad)
+                c = (r.left + pad,  r.bottom - pad)
+                d = (r.right - pad, r.top + pad)
+                pygame.draw.line(surf, x_col, a, b, 4)
+                pygame.draw.line(surf, x_col, c, d, 4)
 
             elif t.state == "pit":
                 # 坑：黑洞 + 邊緣亮
@@ -349,10 +384,12 @@ class BreakableFloorSystem:
             else:  # mud
                 pygame.draw.rect(surf, (120, 95, 70), r, border_radius=10)
                 pygame.draw.rect(surf, (20, 20, 25), r, 2, border_radius=10)
-                # 泥巴亮點
+                # 泥巴亮點（這段你原本用 self.rng 會閃；我也改成固定 seed 更穩）
+                seed = (t.rect.x * 912367) ^ (t.rect.y * 3571) ^ 12345
+                rng = random.Random(seed)
                 for _ in range(3):
-                    cx = self.rng.randint(r.left+10, r.right-10)
-                    cy = self.rng.randint(r.top+10, r.bottom-10)
+                    cx = rng.randint(r.left + 10, r.right - 10)
+                    cy = rng.randint(r.top + 10, r.bottom - 10)
                     pygame.draw.circle(surf, (170, 140, 110), (cx, cy), 3)
 
 
