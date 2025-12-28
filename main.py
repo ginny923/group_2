@@ -979,9 +979,10 @@ class PlayScene(Scene):
                 self.grenades.remove(g)
 
         if not self.p1.alive():
-            self.winner = "P2"
+            self.winner = self.p2.name
         elif not self.p2.alive():
-            self.winner = "P1"
+            self.winner = self.p1.name
+
         
         # explosions
         for e in self.explosions[:]:
