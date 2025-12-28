@@ -209,7 +209,7 @@ class AppleSystem:
 
                     # ✅ 播 apple 音效
                     if sound is not None:
-                        sound.play("apple", volume=3.8)
+                        sound.play("apple", volume=4.5)
 
     def draw(self, surf: pygame.Surface, to_view_rect: Callable[[pygame.Rect], pygame.Rect]) -> None:
         for a in self.apples:

@@ -310,7 +310,8 @@ class PlayScene(Scene):
                 continue
 
             # (A) 打碎地板
-            if floor and floor.handle_bullet_hit(b.rect):
+            # (A) 打碎地板
+            if floor and floor.handle_bullet_hit(b.rect, sound=self.game.sound):
                 self.bullets.remove(b)
                 continue
 
@@ -401,7 +402,7 @@ class PlayScene(Scene):
         apply(self.p2)
 
         if self.floor:
-            self.floor.on_explosion(g.pos, self.mode_grenade_radius)
+            self.floor.on_explosion(g.pos, self.mode_grenade_radius, sound=self.game.sound)
 
         if self.barrels:
             self.barrels.explode_at(g.pos, [self.p1, self.p2])  # 爆炸可以引爆附近桶

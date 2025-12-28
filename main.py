@@ -537,7 +537,7 @@ class Player:
             # ✅ 冷卻避免連續狂叫（可調 0.25~0.6）
             if self.sound is not None and self.hurt_sfx_cd <= 0.0:
                 key = "scream_p1" if self.id == 1 else "scream_p2"
-                self.sound.play(key, volume=20)
+                self.sound.play(key, volume=27)
                 self.hurt_sfx_cd = 0.35
 
     def _try_move_axis(self, dx: float, dy: float, obstacles: List[pygame.Rect],
@@ -914,6 +914,7 @@ class Game:
         self.sound.load("apple", "apple.mp3")
         self.sound.load("scream_p1", "scream.mp3")
         self.sound.load("scream_p2", "scream2.mp3")
+        self.sound.load("wood_bomb", "wood_bomb.mp3")
 
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         self.render_surface = pygame.Surface((WIDTH, HEIGHT))

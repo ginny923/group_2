@@ -311,25 +311,28 @@ class BreakableFloorSystem:
                 return self.mud_slow
         return 1.0
 
-    def handle_bullet_hit(self, bullet_rect: pygame.Rect) -> bool:
-        """
-        若子彈打到脆弱地板，地板碎裂，回傳 True（代表你可以移除子彈，避免穿過）
-        """
+    def handle_bullet_hit(self, bullet_rect: pygame.Rect, sound=None) -> bool:
         for t in self.tiles:
             if t.state == "intact" and bullet_rect.colliderect(t.rect):
                 t.state = "mud" if t.broken_kind == "mud" else "pit"
+                if sound is not None:
+                    sound.play("wood_bomb", volume=1.5)
                 return True
         return False
 
-    def on_explosion(self, pos: pygame.Vector2, radius: float) -> None:
-        # 爆炸波及：intact 也會碎
+    def on_explosion(self, pos: pygame.Vector2, radius: float, sound=None) -> None:
+        broke_any = False
         for t in self.tiles:
             if t.state != "intact":
                 continue
-            # 距離用 tile 中心
             c = pygame.Vector2(t.rect.centerx, t.rect.centery)
             if (c - pos).length() <= radius + 20:
                 t.state = "mud" if t.broken_kind == "mud" else "pit"
+                broke_any = True
+
+        # ✅ 爆炸一次只播一次，避免同時碎很多塊狂叫
+        if broke_any and sound is not None:
+            sound.play("wood_bomb", volume=1.5)
 
     def draw(self, surf: pygame.Surface, to_view_rect: Callable[[pygame.Rect], pygame.Rect]) -> None:
         import random
