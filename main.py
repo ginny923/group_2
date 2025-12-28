@@ -1459,7 +1459,6 @@ class PlayScene(Scene):
 
         draw_world(left_view, cam1, self.p1)
         draw_world(right_view, cam2, self.p2)
-
         # 把左右畫面貼到主螢幕
         screen.fill(BG_COLOR)
         screen.blit(left_view, (0, 0))
