@@ -1455,7 +1455,6 @@ class PlayScene(Scene):
 
         left_view = pygame.Surface((VIEW_W, VIEW_H))
         right_view = pygame.Surface((VIEW_W, VIEW_H))
-
         cam1 = camera_offset(self.p1.pos)
         cam2 = camera_offset(self.p2.pos)
 
