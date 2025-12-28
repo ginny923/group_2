@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
 from leaderboard import LeaderboardManager, LeaderboardScene
+from classic_features import AppleSystem, PortalPairSystem
 
 import pygame
 
@@ -470,7 +471,7 @@ def make_default_weapons() -> List[Weapon]:
         bullet_size=(6, 6),
         bullet_kind="rect",
     )
-    
+
     return [pistol, rifle, shotgun]
 
 # =========================
@@ -890,6 +891,33 @@ class PlayScene(Scene):
             start_pos=(self.world_w - 120 - PLAYER_SIZE[0], self.world_h // 2 - PLAYER_SIZE[1] // 2),
             keymap=p2_keys,
         )
+
+                # ===== Classic features: apples + portals =====
+        self.apple_sys = None
+        self.portal_sys = None
+
+        if self.game.mode.key == "classic":
+            # 避免生成在出生區附近
+            spawn_left = pygame.Rect(ARENA_MARGIN, HEIGHT // 2 - 120, 220, 240)
+            spawn_right = pygame.Rect(WIDTH - ARENA_MARGIN - 220, HEIGHT // 2 - 120, 220, 240)
+            avoid = [spawn_left, spawn_right]
+
+            self.apple_sys = AppleSystem(
+                world_w=WIDTH, world_h=HEIGHT, arena_margin=ARENA_MARGIN,
+                obstacles=self.map.obstacles,
+                max_apples=3,            # ✅ 最多 3 顆
+                heal_amount=15,          # 回血量
+                spawn_cd_range=(6.0, 10.0),
+            )
+
+            self.portal_sys = PortalPairSystem(
+                world_w=WIDTH, world_h=HEIGHT, arena_margin=ARENA_MARGIN,
+                obstacles=self.map.obstacles,
+                portal_radius=22,
+                cooldown=1.0,
+            )
+            self.portal_sys.spawn_pair(avoid_rects=avoid)
+
         self.p1.max_hp = self.mode_hp
         self.p2.max_hp = self.mode_hp
         self.p1.hp = self.p1.max_hp
@@ -1025,6 +1053,15 @@ class PlayScene(Scene):
             self.winner = self.p1.name
             self.game.leaderboard.record_win(self.game.mode.key, self.winner)
             self.win_timer = 0.0
+
+        # ===== Classic features update =====
+        if self.apple_sys is not None:
+            spawn_left = pygame.Rect(ARENA_MARGIN, HEIGHT // 2 - 120, 220, 240)
+            spawn_right = pygame.Rect(WIDTH - ARENA_MARGIN - 220, HEIGHT // 2 - 120, 220, 240)
+            self.apple_sys.update(dt, [self.p1, self.p2], avoid_rects=[spawn_left, spawn_right])
+
+        if self.portal_sys is not None:
+            self.portal_sys.update(dt, [self.p1, self.p2])
 
         # explosions
         for e in self.explosions[:]:
@@ -1206,6 +1243,12 @@ class PlayScene(Scene):
                 pygame.draw.circle(view_surf, (220, 220, 120), shift_pos(g.pos), 7)
                 frac = max(0.0, min(1.0, g.fuse / GRENADE_FUSE_SEC))
                 pygame.draw.circle(view_surf, (180, 180, 110), shift_pos(g.pos), int(16 * frac), 1)
+
+            # ===== Classic features draw =====
+            if self.apple_sys is not None:
+                self.apple_sys.draw(view_surf, shift_rect)
+            if self.portal_sys is not None:
+                self.portal_sys.draw(view_surf, shift_pos)
 
             # explosions (shockwave + core)
             for e in self.explosions:
