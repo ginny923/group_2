@@ -1375,7 +1375,6 @@ class PlayScene(Scene):
                 pygame.draw.circle(view_surf, (220, 220, 120), shift_pos(g.pos), 7)
                 frac = max(0.0, min(1.0, g.fuse / GRENADE_FUSE_SEC))
                 pygame.draw.circle(view_surf, (180, 180, 110), shift_pos(g.pos), int(16 * frac), 1)
-
             # ===== Classic features draw =====
             if self.apple_sys is not None:
                 self.apple_sys.draw(view_surf, shift_rect)
