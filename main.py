@@ -615,7 +615,7 @@ class MenuScene(Scene):
             elif event.key == pygame.K_RETURN:
                 item = self.items[self.selection]
                 if item == "Start":
-                    self.game.set_scene(ModeSelectScene(self.game))
+                    self.game.set_scene(NameInputScene(self.game))
                 elif item == "Controls":
                     self.game.set_scene(ControlsScene(self.game))
                 elif item == "Quit":
@@ -633,6 +633,112 @@ class MenuScene(Scene):
 
         hint = self.font.render("Use ↑↓ and Enter", True, (170, 170, 190))
         screen.blit(hint, (WIDTH // 2 - hint.get_width() // 2, HEIGHT - 90))
+
+class NameInputScene(Scene):
+    def __init__(self, game: "Game") -> None:
+        self.game = game
+        self.font = pygame.font.SysFont("Arial", 22)
+        self.big = pygame.font.SysFont("Arial", 46, bold=True)
+
+        # 目前輸入的字串
+        self.names = [game.p1_name if game.p1_name != "P1" else "",
+                      game.p2_name if game.p2_name != "P2" else ""]
+
+        # 0 = P1, 1 = P2
+        self.active = 0
+        self.max_len = 12
+
+        # 小游標閃爍
+        self.cursor_t = 0.0
+        self.cursor_on = True
+
+    def handle_event(self, event: pygame.event.Event) -> None:
+        if event.type != pygame.KEYDOWN:
+            return
+
+        if event.key == pygame.K_ESCAPE:
+            self.game.set_scene(MenuScene(self.game))
+            return
+
+        # 切換欄位
+        if event.key == pygame.K_TAB:
+            self.active = 1 - self.active
+            return
+
+        # 退格
+        if event.key == pygame.K_BACKSPACE:
+            if len(self.names[self.active]) > 0:
+                self.names[self.active] = self.names[self.active][:-1]
+            return
+
+        # 確認/下一步
+        if event.key == pygame.K_RETURN:
+            # 若現在欄位空，先不過
+            if self.names[self.active].strip() == "":
+                return
+
+            if self.active == 0:
+                self.active = 1
+                return
+
+            # P2 也有了 → 存到 Game，進模式選擇
+            self.game.p1_name = self.names[0].strip()
+            self.game.p2_name = self.names[1].strip()
+            self.game.set_scene(ModeSelectScene(self.game))
+            return
+
+        # 一般文字輸入（event.unicode）
+        ch = event.unicode
+        if not ch:
+            return
+
+        # 過濾不可見字元
+        if ord(ch) < 32:
+            return
+
+        if len(self.names[self.active]) < self.max_len:
+            self.names[self.active] += ch
+
+    def update(self, dt: float) -> None:
+        self.cursor_t += dt
+        if self.cursor_t >= 0.5:
+            self.cursor_t = 0.0
+            self.cursor_on = not self.cursor_on
+
+    def draw(self, screen: pygame.Surface) -> None:
+        screen.fill(BG_COLOR)
+
+        title = self.big.render("Enter Player Names", True, UI_COLOR)
+        screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 90))
+
+        hint = self.font.render("Type name | Enter: next/confirm | Tab: switch | Esc: back", True, (170, 170, 190))
+        screen.blit(hint, (WIDTH // 2 - hint.get_width() // 2, 150))
+
+        box_w, box_h = 520, 56
+        start_y = 230
+
+        for i in range(2):
+            is_active = (i == self.active)
+            label = "P1 Name:" if i == 0 else "P2 Name:"
+            label_surf = self.font.render(label, True, UI_COLOR)
+            screen.blit(label_surf, (WIDTH // 2 - box_w // 2, start_y + i * 110 - 26))
+
+            # box
+            x = WIDTH // 2 - box_w // 2
+            y = start_y + i * 110
+            border = (235, 235, 245) if is_active else (120, 120, 140)
+            pygame.draw.rect(screen, (35, 35, 45), (x, y, box_w, box_h), border_radius=10)
+            pygame.draw.rect(screen, border, (x, y, box_w, box_h), width=2, border_radius=10)
+
+            text = self.names[i]
+            if is_active and self.cursor_on:
+                text += "|"
+
+            text_surf = self.font.render(text, True, UI_COLOR)
+            screen.blit(text_surf, (x + 16, y + 15))
+
+        ok = self.font.render("Press Enter to continue", True, (170, 170, 190))
+        screen.blit(ok, (WIDTH // 2 - ok.get_width() // 2, HEIGHT - 90))
 
 class ControlsScene(Scene):
     def __init__(self, game: "Game") -> None:
@@ -748,14 +854,14 @@ class PlayScene(Scene):
 
         self.p1 = Player(
             player_id=1,
-            name="P1",
+            name=self.game.p1_name,
             color=P1_COLOR,
             start_pos=(120, HEIGHT // 2 - PLAYER_SIZE[1] // 2),
             keymap=p1_keys,
         )
         self.p2 = Player(
             player_id=2,
-            name="P2",
+            name=self.game.p2_name,
             color=P2_COLOR,
             start_pos=(WIDTH - 120 - PLAYER_SIZE[0], HEIGHT // 2 - PLAYER_SIZE[1] // 2),
             keymap=p2_keys,
@@ -1157,6 +1263,8 @@ class Game:
         self.sound.load("grenade", "grenade.wav")
         self.sound.load("boom", "boom.wav")
         self.mode = MODES["classic"]
+        self.p1_name = "P1"
+        self.p2_name = "P2"
         self.scene: Scene = MenuScene(self)
 
     def set_scene(self, scene: Scene) -> None:
