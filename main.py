@@ -1398,7 +1398,6 @@ class PlayScene(Scene):
                 size = max(2, r * 2 + 8)
                 fx = ex - size // 2
                 fy = ey - size // 2
-
                 surf = pygame.Surface((size, size), pygame.SRCALPHA)
 
                 # 外圈 shockwave
