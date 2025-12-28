@@ -718,11 +718,39 @@ class PlayScene(Scene):
                 # 4. 最後加上一層外框，讓整體更紮實
                 pygame.draw.rect(view_surf, (20, 20, 25), r, width=2, border_radius=4)
             
-            # grenades
+            # grenades (more realistic)
             for g in self.grenades:
-                pygame.draw.circle(view_surf, (220, 220, 120), shift_pos(g.pos), 7)
+                x, y = shift_pos(g.pos)
+
+                # 本體（綠色）
+                body_r = 8
+                pygame.draw.circle(view_surf, (70, 130, 70), (x, y), body_r)          # 主色
+                pygame.draw.circle(view_surf, (25, 35, 25), (x, y), body_r, 2)        # 外框
+
+                # ✅ 條紋（用幾條弧線/圈線做出「紋路」感）
+                for rr in (3, 5, 6):
+                    pygame.draw.circle(view_surf, (55, 105, 55), (x, y), rr, 1)
+
+                # 高光（左上亮點）
+                pygame.draw.circle(view_surf, (95, 160, 95), (x - 3, y - 3), 3)
+
+                # 引信/握把（上方小方塊）
+                cap = pygame.Rect(x - 3, y - body_r - 5, 6, 6)
+                pygame.draw.rect(view_surf, (60, 60, 60), cap, border_radius=2)
+                pygame.draw.rect(view_surf, (15, 15, 15), cap, 1, border_radius=2)
+
+                # 拉環（右上小圓環）
+                pygame.draw.circle(view_surf, (170, 170, 170), (x + 8, y - body_r - 1), 4, 2)
+
+                # fuse 倒數圈（外圈）
                 frac = max(0.0, min(1.0, g.fuse / GRENADE_FUSE_SEC))
-                pygame.draw.circle(view_surf, (180, 180, 110), shift_pos(g.pos), int(16 * frac), 1)
+                ring_r = max(4, int(18 * frac))
+                # 半徑太小就畫實心避免鋸齒怪形
+                if ring_r <= 3:
+                    pygame.draw.circle(view_surf, (210, 210, 120), (x, y), ring_r)
+                else:
+                    pygame.draw.circle(view_surf, (210, 210, 120), (x, y), ring_r, 2)
+
             # ===== Classic features draw =====
             if self.apple_sys is not None:
                 self.apple_sys.draw(view_surf, shift_rect)
@@ -736,24 +764,32 @@ class PlayScene(Scene):
                 self.mines.draw_fx(view_surf, shift_pos)
             # explosions (shockwave + core)
             for e in self.explosions:
-                r = int(e.radius())
+                r = max(1, int(e.radius()))   # 半徑至少 1，避免 0
                 a = e.alpha()
-                # 在視窗座標的位置
+
                 ex, ey = shift_pos(e.pos)
-                # 用一個帶 alpha 的小圖層來畫（pygame.draw.circle 本身不帶 alpha）
+
                 size = max(2, r * 2 + 8)
                 fx = ex - size // 2
                 fy = ey - size // 2
-                surf = pygame.Surface((size, size), pygame.SRCALPHA)
+                sfx = pygame.Surface((size, size), pygame.SRCALPHA)
 
-                # 外圈 shockwave
-                pygame.draw.circle(surf, (255, 230, 120, a), (size//2, size//2), r, 3)
+                cx = size // 2
+                cy = size // 2
 
-                # 內核亮點（比較亮，alpha 稍高）
+                # ✅ 讓外圈線寬跟半徑走：半徑小就不要畫空心圈（會像 V）
+                if r <= 4:
+                    # 半徑太小：直接畫實心比較漂亮
+                    pygame.draw.circle(sfx, (255, 230, 120, a), (cx, cy), r)
+                else:
+                    thick = 2 if r < 14 else 3  # 你也可以再調整
+                    pygame.draw.circle(sfx, (255, 230, 120, a), (cx, cy), r, thick)
+
+                # 內核亮點
                 core_r = max(2, int(r * 0.35))
-                pygame.draw.circle(surf, (255, 200, 80, min(255, a + 40)), (size//2, size//2), core_r)
+                pygame.draw.circle(sfx, (255, 200, 80, min(255, a + 40)), (cx, cy), core_r)
 
-                view_surf.blit(surf, (fx, fy))
+                view_surf.blit(sfx, (fx, fy))
 
             # bullets
             for b in self.bullets:
