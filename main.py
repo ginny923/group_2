@@ -47,22 +47,27 @@ class GameMode:
     grenade_radius: int = GRENADE_RADIUS
     grenade_cd: float = 1.0
     grenade_speed: float = GRENADE_SPEED
+    world_w: int = WIDTH
+    world_h: int = HEIGHT
 
 MODES = {
     "classic": GameMode(
         "classic", "Classic",
-        max_hp=100, obstacle_count=9,  grenade_radius=80,
-        infinite_ammo=False, grenade_cd=1.0, grenade_speed=420
+        max_hp=100, obstacle_count=9, grenade_radius=80,
+        infinite_ammo=False, grenade_cd=1.0, grenade_speed=420,
+        world_w=1400, world_h=820
     ),
     "hardcore": GameMode(
         "hardcore", "Hardcore",
         max_hp=60, obstacle_count=12, grenade_radius=95,
-        infinite_ammo=False, grenade_cd=1.4, grenade_speed=460
+        infinite_ammo=False, grenade_cd=1.4, grenade_speed=460,
+        world_w=1550, world_h=900
     ),
     "chaos": GameMode(
         "chaos", "Chaos",
         max_hp=120, obstacle_count=16, grenade_radius=110,
-        infinite_ammo=True, grenade_cd=0.6, grenade_speed=520
+        infinite_ammo=True, grenade_cd=0.6, grenade_speed=520,
+        world_w=1700, world_h=980
     ),
 }
 
@@ -70,11 +75,16 @@ MODES = {
 # =========================
 # Utility
 # =========================
-def clamp_in_arena(rect: pygame.Rect) -> None:
+def clamp_in_arena(rect: pygame.Rect, world_w: int, world_h: int) -> None:
     left = ARENA_MARGIN
     top = ARENA_MARGIN
-    right = WIDTH - ARENA_MARGIN
-    bottom = HEIGHT - ARENA_MARGIN
+    right = world_w - ARENA_MARGIN
+    bottom = world_h - ARENA_MARGIN
+
+    if rect.left < left: rect.left = left
+    if rect.top < top: rect.top = top
+    if rect.right > right: rect.right = right
+    if rect.bottom > bottom: rect.bottom = bottom
 
     if rect.left < left: rect.left = left
     if rect.top < top: rect.top = top
@@ -153,21 +163,24 @@ class SoundManager:
 # Map / Obstacles
 # =========================
 class ArenaMap:
-    def __init__(self, seed: Optional[int] = None, obstacle_count: int = OBSTACLE_COUNT) -> None:
+    def __init__(self, seed: Optional[int] = None, obstacle_count: int = OBSTACLE_COUNT,
+                 world_w: int = WIDTH, world_h: int = HEIGHT) -> None:
         self.rng = random.Random(seed)
         self.obstacle_count = obstacle_count
+        self.world_w = world_w
+        self.world_h = world_h
         self.obstacles: List[pygame.Rect] = []
 
     def generate(self) -> None:
         self.obstacles = []
 
         # 固定中間柱子，幫助玩法變得有掩體節奏
-        center_pillar = pygame.Rect(WIDTH // 2 - 28, HEIGHT // 2 - 140, 56, 280)
+        center_pillar = pygame.Rect(self.world_w // 2 - 28, self.world_h // 2 - 140, 56, 280)
         self.obstacles.append(center_pillar)
 
         # 生成隨機掩體，避免擋住出生點
-        spawn_left = pygame.Rect(ARENA_MARGIN, HEIGHT // 2 - 120, 220, 240)
-        spawn_right = pygame.Rect(WIDTH - ARENA_MARGIN - 220, HEIGHT // 2 - 120, 220, 240)
+        spawn_left  = pygame.Rect(ARENA_MARGIN, self.world_h // 2 - 120, 220, 240)
+        spawn_right = pygame.Rect(self.world_w - ARENA_MARGIN - 220, self.world_h // 2 - 120, 220, 240)
 
         attempts = 0
         while len(self.obstacles) < 1 + self.obstacle_count and attempts < 2000:
@@ -175,19 +188,17 @@ class ArenaMap:
             w = self.rng.randint(50, 150)
             h = self.rng.randint(22, 90)
 
-            x = self.rng.randint(ARENA_MARGIN + 40, WIDTH - ARENA_MARGIN - 40 - w)
-            y = self.rng.randint(ARENA_MARGIN + 40, HEIGHT - ARENA_MARGIN - 40 - h)
+            x = self.rng.randint(ARENA_MARGIN + 40, self.world_w - ARENA_MARGIN - 40 - w)
+            y = self.rng.randint(ARENA_MARGIN + 40, self.world_h - ARENA_MARGIN - 40 - h)
             r = pygame.Rect(x, y, w, h)
 
             # 不要擋住出生區
             if r.colliderect(spawn_left) or r.colliderect(spawn_right):
                 continue
 
-            # 不要貼太近邊界
-            if r.left < ARENA_MARGIN + 10 or r.right > WIDTH - ARENA_MARGIN - 10:
-                continue
-            if r.top < ARENA_MARGIN + 10 or r.bottom > HEIGHT - ARENA_MARGIN - 10:
-                continue
+            # 邊界檢查也一樣換成 self.world_w/self.world_h
+            if r.right > self.world_w - ARENA_MARGIN - 10: continue
+            if r.bottom > self.world_h - ARENA_MARGIN - 10: continue
 
             # 不要重疊太多（允許稍微靠近）
             if rects_overlap_any(r.inflate(12, 12), self.obstacles):
@@ -222,7 +233,7 @@ class Grenade:
     owner_id: int
     fuse: float
 
-    def update(self, dt: float, obstacles: List[pygame.Rect]) -> None:
+    def update(self, dt: float, obstacles: List[pygame.Rect], world_w: int, world_h: int) -> None:
         # 基本移動
         self.pos += self.vel * dt
 
@@ -233,14 +244,14 @@ class Grenade:
         if r.left < ARENA_MARGIN:
             self.pos.x = ARENA_MARGIN + 7
             self.vel.x *= -GRENADE_BOUNCE
-        if r.right > WIDTH - ARENA_MARGIN:
-            self.pos.x = (WIDTH - ARENA_MARGIN) - 7
+        if r.right > world_w - ARENA_MARGIN:
+            self.pos.x = (world_w - ARENA_MARGIN) - 7
             self.vel.x *= -GRENADE_BOUNCE
         if r.top < ARENA_MARGIN:
             self.pos.y = ARENA_MARGIN + 7
             self.vel.y *= -GRENADE_BOUNCE
-        if r.bottom > HEIGHT - ARENA_MARGIN:
-            self.pos.y = (HEIGHT - ARENA_MARGIN) - 7
+        if r.bottom > world_h - ARENA_MARGIN:
+            self.pos.y = (world_h - ARENA_MARGIN) - 7
             self.vel.y *= -GRENADE_BOUNCE
 
         # 掩體反彈（分軸處理）
@@ -514,7 +525,8 @@ class Player:
     def take_damage(self, dmg: int) -> None:
         self.hp = max(0, self.hp - dmg)
 
-    def _try_move_axis(self, dx: float, dy: float, obstacles: List[pygame.Rect]) -> None:
+    def _try_move_axis(self, dx: float, dy: float, obstacles: List[pygame.Rect],
+                   world_w: int, world_h: int) -> None:
         # 分軸移動：比較滑順，也比較好卡牆
         if dx != 0:
             self.rect.x += int(dx)
@@ -526,10 +538,10 @@ class Player:
             if rects_overlap_any(self.body_hitbox(), obstacles):
                 self.rect.y -= int(dy)
 
-        clamp_in_arena(self.rect)
+        clamp_in_arena(self.rect, world_w, world_h)
         self.pos.update(self.rect.centerx, self.rect.centery)
 
-    def update(self, dt: float, keys: pygame.key.ScancodeWrapper, obstacles: List[pygame.Rect]) -> None:
+    def update(self, dt: float, keys: pygame.key.ScancodeWrapper, obstacles: List[pygame.Rect], world_w, world_h) -> None:
         # 武器內部 cooldown / reload
         for w in self.weapons:
             w.update(dt)
@@ -549,7 +561,7 @@ class Player:
         if move.length_squared() > 0:
             # 用移動方向更新 facing（讓玩家面向移動方向）
             self.facing = safe_normalize(pygame.Vector2(vx, vy))
-        self._try_move_axis(move.x, move.y, obstacles)
+        self._try_move_axis(move.x, move.y, obstacles, world_w, world_h)
 
     def try_shoot(self, sound: SoundManager) -> List[Bullet]:
         # 從玩家中心稍微往 facing 方向偏移，避免子彈出生就撞到自己
@@ -849,8 +861,16 @@ class PlayScene(Scene):
         self.win_timer = 0.0
         self.win_delay = 1.2   # 勝利畫面停 1.2 秒後進 leaderboard
 
+        self.world_w = mode.world_w
+        self.world_h = mode.world_h
+
         # map
-        self.map = ArenaMap(seed=random.randint(0, 10**9), obstacle_count=self.mode_obstacles)
+        self.map = ArenaMap(
+            seed=random.randint(0, 10**9),
+            obstacle_count=self.mode_obstacles,
+            world_w=self.world_w,
+            world_h=self.world_h
+        )
         self.map.generate()
 
         # players
@@ -861,14 +881,14 @@ class PlayScene(Scene):
             player_id=1,
             name=self.game.p1_name,
             color=P1_COLOR,
-            start_pos=(120, HEIGHT // 2 - PLAYER_SIZE[1] // 2),
+            start_pos=(120, self.world_h // 2 - PLAYER_SIZE[1] // 2),
             keymap=p1_keys,
         )
         self.p2 = Player(
             player_id=2,
             name=self.game.p2_name,
             color=P2_COLOR,
-            start_pos=(WIDTH - 120 - PLAYER_SIZE[0], HEIGHT // 2 - PLAYER_SIZE[1] // 2),
+            start_pos=(self.world_w - 120 - PLAYER_SIZE[0], self.world_h // 2 - PLAYER_SIZE[1] // 2),
             keymap=p2_keys,
         )
         self.p1.max_hp = self.mode_hp
@@ -949,15 +969,15 @@ class PlayScene(Scene):
             return
 
         keys = pygame.key.get_pressed()
-        self.p1.update(dt, keys, self.map.obstacles)
-        self.p2.update(dt, keys, self.map.obstacles)
+        self.p1.update(dt, keys, self.map.obstacles, self.world_w, self.world_h)
+        self.p2.update(dt, keys, self.map.obstacles, self.world_w, self.world_h)
 
         # bullets
         for b in self.bullets[:]:
             b.update(dt)
 
             # remove out of arena
-            if (b.rect.right < 0 or b.rect.left > WIDTH or b.rect.bottom < 0 or b.rect.top > HEIGHT):
+            if (b.rect.right < 0 or b.rect.left > self.world_w or b.rect.bottom < 0 or b.rect.top > self.world_h):
                 self.bullets.remove(b)
                 continue
 
@@ -980,7 +1000,7 @@ class PlayScene(Scene):
 
         # grenades (作法B：碰到人就立刻爆)
         for g in self.grenades[:]:
-            g.update(dt, self.map.obstacles)
+            g.update(dt, self.map.obstacles, self.world_w, self.world_h)
 
             # 手榴彈本體 hitbox（跟你 Grenade.update 用的一樣大小）
             grenade_rect = pygame.Rect(int(g.pos.x - 7), int(g.pos.y - 7), 14, 14)
@@ -1066,8 +1086,8 @@ class PlayScene(Scene):
         def camera_offset(center: pygame.Vector2) -> pygame.Vector2:
             off_x = center.x - VIEW_W / 2
             off_y = center.y - VIEW_H / 2
-            off_x = clamp(off_x, 0, WIDTH - VIEW_W)
-            off_y = clamp(off_y, 0, HEIGHT - VIEW_H)
+            off_x = clamp(off_x, 0, self.world_w - VIEW_W)
+            off_y = clamp(off_y, 0, self.world_h - VIEW_H)
             return pygame.Vector2(off_x, off_y)
 
         def draw_world(view_surf: pygame.Surface, cam_off: pygame.Vector2) -> None:
@@ -1168,8 +1188,10 @@ class PlayScene(Scene):
             # arena border
             arena_rect = pygame.Rect(
                 ARENA_MARGIN, ARENA_MARGIN,
-                WIDTH - 2 * ARENA_MARGIN, HEIGHT - 2 * ARENA_MARGIN
+                self.world_w - 2 * ARENA_MARGIN,
+                self.world_h - 2 * ARENA_MARGIN
             )
+
             pygame.draw.rect(
                 view_surf,
                 (70, 70, 85),
