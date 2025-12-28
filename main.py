@@ -1228,12 +1228,12 @@ class PlayScene(Scene):
 
         # UI（沿用你原本的）
         self._draw_hp_bar(screen, 20, 26, 240, 18,
-                  self.p1.hp, self.p1.max_hp, P1_COLOR,
-                  f"{self.p1.name}(藍)")
+                        self.p1.hp, self.p1.max_hp, P1_COLOR,
+                        self.p1.name)
 
         self._draw_hp_bar(screen, VIEW_W + 20, 26, 240, 18,
                         self.p2.hp, self.p2.max_hp, P2_COLOR,
-                        f"{self.p2.name}(紅)")
+                        self.p2.name)
 
         self._draw_weapon_ui(screen, 20, 60, self.p1, align_right=False)
         self._draw_weapon_ui(screen, WIDTH - 20, 60, self.p2, align_right=True)
