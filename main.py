@@ -899,7 +899,6 @@ class Game:
     def __init__(self) -> None:
         pygame.mixer.pre_init(44100, -16, 2, 512)
         pygame.init()
-    
         # --- 緊接著加入這幾行 ---
         pygame.mixer.init()                  # 啟動音效系統
         pygame.mixer.music.load("bgm.mp3")    # 載入音樂檔案 (檔名要跟資料夾裡的一樣)
