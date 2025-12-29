@@ -331,7 +331,7 @@ class PortalPairSystem:
         pl.pos.update(pl.rect.centerx, pl.rect.centery)
         self.fx.append(TeleportFX(pos=pygame.Vector2(pl.pos)))   # 終點特效
 
-    def update(self, dt: float, players: List[object]) -> None:
+    def update(self, dt: float, players: List[object], sound=None) -> None:
         self._t += dt
 
         if self.A is None or self.B is None:
@@ -346,9 +346,20 @@ class PortalPairSystem:
 
             if self._inside(pl, self.A):
                 self._teleport_player(pl, self.B)
+
+                # ✅ teleport 成功音效（只在真的傳送那刻播）
+                if sound is not None:
+                    sound.play("transmit", volume=0.30)
+
                 self._cd[pl.id] = self.cooldown
+
             elif self._inside(pl, self.B):
                 self._teleport_player(pl, self.A)
+
+                # ✅ teleport 成功音效
+                if sound is not None:
+                    sound.play("transmit", volume=0.30)
+
                 self._cd[pl.id] = self.cooldown
 
         for f in self.fx[:]:

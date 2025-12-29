@@ -291,7 +291,7 @@ class PlayScene(Scene):
             self.apple_sys.update(dt, [self.p1, self.p2], avoid_rects=[spawn_left, spawn_right], sound=self.game.sound)
 
         if getattr(self, "portal_sys", None) is not None:
-            self.portal_sys.update(dt, [self.p1, self.p2])
+            self.portal_sys.update(dt, [self.p1, self.p2], sound=self.game.sound)
 
         # chaos systems（桶子的 fx 可能需要 update）
         if barrels:
