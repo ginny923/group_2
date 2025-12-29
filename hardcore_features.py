@@ -257,7 +257,10 @@ class MineSystem:
                 )
             )
 
-    def _explode(self, pos: pygame.Vector2, players: List[object]) -> None:
+    def _explode(self, pos: pygame.Vector2, players: List[object], sound=None) -> None:
+        if sound is not None:
+            sound.play("bomb", volume=0.35)
+
         # 特效
         self.fx.append(MineFX(pos=pygame.Vector2(pos), max_radius=self.blast_radius, duration=0.35))
 
@@ -270,7 +273,7 @@ class MineSystem:
             dmg = int(self.min_damage + (self.max_damage - self.min_damage) * t)
             pl.take_damage(dmg)
 
-    def update(self, dt: float, players: List[object]) -> None:
+    def update(self, dt: float, players: List[object], sound=None) -> None:
         self._t = getattr(self, "_t", 0.0) + dt
 
         # arm 計時
@@ -288,7 +291,7 @@ class MineSystem:
                 c = pygame.Vector2(pl.rect.centerx, pl.rect.centery)
                 if (c - m.pos).length_squared() <= (m.radius + 10) ** 2:
                     # 觸發爆炸
-                    self._explode(m.pos, players)
+                    self._explode(m.pos, players, sound=sound)
                     self.mines.remove(m)
                     break
 

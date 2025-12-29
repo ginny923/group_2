@@ -282,7 +282,7 @@ class PlayScene(Scene):
         if poison:
             poison.update(dt, [self.p1, self.p2])
         if mines:
-            mines.update(dt, [self.p1, self.p2])
+            mines.update(dt, [self.p1, self.p2], sound=self.game.sound)
 
         # classic systems
         if getattr(self, "apple_sys", None) is not None:
@@ -318,7 +318,7 @@ class PlayScene(Scene):
             # (B) 打到爆炸桶
             if barrels and barrels.handle_bullet_hit(b.rect, [self.p1, self.p2]):
                 self.bullets.remove(b)
-                self.game.sound.play("boom", volume=0.30)
+                self.game.sound.play("bomb", volume=0.35)
                 continue
 
             # (C) obstacle hit（用 base_obstacles，不要只用 map.obstacles）
@@ -380,7 +380,7 @@ class PlayScene(Scene):
                 self.explosions.remove(e)
 
     def _explode(self, g: Grenade) -> None:
-        self.game.sound.play("boom", volume=0.35)
+        self.game.sound.play("bomb", volume=0.35)
 
         # ✅ 生成爆炸動畫（用模式半徑）
         self.explosions.append(

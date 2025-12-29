@@ -825,6 +825,12 @@ class ControlsScene(Scene):
             "P1 (Blue):  Move WASD | Shoot F | Reload R | Grenade Q | Weapon 1/2/3",
             "P2 (Red):   Move Arrows | Shoot / | Reload RightShift | Grenade RightCtrl | Weapon KP1/KP2/KP3",
             "Common: ESC quit | In game: ESC menu | After win: Enter restart",
+            "Apple: Touch to heal +HP, then it disappears ✦",
+            "Portals: Enter one portal → teleport next to the other portal",
+            "Poison Zone: Shrinks every shrink_interval; staying inside deals DoT ⚠",
+            "Landmine: Step on it → instant explosion (AoE damage)",
+            "Barrel: Solid obstacle; can explode and deal nearby damage ⚠",
+            "Blocker: Cannot pass; entering the slow area reduces speed ↓",
         ]
         for i, s in enumerate(lines):
             t = self.font.render(s, True, UI_COLOR)

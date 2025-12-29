@@ -331,7 +331,7 @@ class BreakableFloorSystem:
                 broke_any = True
         # ✅ 爆炸一次只播一次，避免同時碎很多塊狂叫
         if broke_any and sound is not None:
-            sound.play("wood_bomb", volume=1.5)
+            sound.play("wood_bomb", volume=3)
 
     def draw(self, surf: pygame.Surface, to_view_rect: Callable[[pygame.Rect], pygame.Rect]) -> None:
         import random
